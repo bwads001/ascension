@@ -13,7 +13,7 @@ export default function UI() {
         </span>
       </div>
 
-      <div className="floor-indicator">Floor {floor}</div>
+      <div className="floor-indicator">{floor === 0 ? 'Overworld' : `Floor ${floor}`}</div>
 
       <div className="controls">
         <div>
@@ -24,10 +24,10 @@ export default function UI() {
           Move
         </div>
         <div>
-          <span className="key">Space</span> Jump
+          <span className="key">J</span> / <span className="key">Z</span> Attack
         </div>
         <div>
-          <span className="key">Mouse</span> Look around
+          <span className="key">Mouse</span> Rotate camera
         </div>
       </div>
     </div>

@@ -5,7 +5,7 @@ interface Keys {
   backward: boolean
   left: boolean
   right: boolean
-  jump: boolean
+  attack: boolean
 }
 
 export default function useKeyboard(): Keys {
@@ -14,7 +14,7 @@ export default function useKeyboard(): Keys {
     backward: false,
     left: false,
     right: false,
-    jump: false,
+    attack: false,
   })
 
   useEffect(() => {
@@ -36,9 +36,9 @@ export default function useKeyboard(): Keys {
         case 'ArrowRight':
           setKeys((k) => ({ ...k, right: true }))
           break
-        case 'Space':
-          e.preventDefault()
-          setKeys((k) => ({ ...k, jump: true }))
+        case 'KeyJ':
+        case 'KeyZ':
+          setKeys((k) => ({ ...k, attack: true }))
           break
       }
     }
@@ -61,8 +61,9 @@ export default function useKeyboard(): Keys {
         case 'ArrowRight':
           setKeys((k) => ({ ...k, right: false }))
           break
-        case 'Space':
-          setKeys((k) => ({ ...k, jump: false }))
+        case 'KeyJ':
+        case 'KeyZ':
+          setKeys((k) => ({ ...k, attack: false }))
           break
       }
     }
