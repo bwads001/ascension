@@ -1,9 +1,20 @@
+import type { ThreeEvent } from '@react-three/fiber'
 import { RigidBody } from '@react-three/rapier'
 
+import { usePlayerStore } from '../store/playerStore'
+
 export default function Floor() {
+  const setTargetPosition = usePlayerStore((state) => state.setTargetPosition)
+
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+    if (e.point) {
+      setTargetPosition([e.point.x, 0, e.point.z])
+    }
+  }
+
   return (
     <RigidBody type="fixed" colliders="cuboid">
-      <mesh receiveShadow position={[0, -0.5, 0]}>
+      <mesh receiveShadow position={[0, -0.5, 0]} onClick={handleClick}>
         <boxGeometry args={[60, 1, 80]} />
         <meshStandardMaterial color="#3d5c3d" roughness={0.95} />
       </mesh>

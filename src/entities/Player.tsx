@@ -1,7 +1,7 @@
-import { useFrame, useThree } from '@react-three/fiber'
+import { useFrame } from '@react-three/fiber'
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier'
-import { useRef, useState } from 'react'
-import { Vector2, Vector3, Mesh, Raycaster, Plane } from 'three'
+import { useRef } from 'react'
+import { Vector3, Mesh } from 'three'
 
 import { usePlayerStore } from '../store/playerStore'
 
@@ -139,12 +139,11 @@ type PlayerClass = keyof typeof CLASSES
 
 interface PlayerProps {
   playerClass?: PlayerClass
-  targetPosition: [number, number, number] | null
 }
 
-function PlayerController({ playerClass = 'warrior', targetPosition }: PlayerProps) {
+export default function Player({ playerClass = 'warrior' }: PlayerProps) {
   const ref = useRef<RapierRigidBody>(null)
-  const { setPosition } = usePlayerStore()
+  const { position, setPosition, targetPosition } = usePlayerStore()
   const Character = CLASSES[playerClass]
 
   useFrame((_, delta) => {
@@ -169,7 +168,7 @@ function PlayerController({ playerClass = 'warrior', targetPosition }: PlayerPro
   return (
     <RigidBody
       ref={ref}
-      position={[0, 0, 0]}
+      position={position}
       colliders={false}
       type="kinematicPosition"
       lockRotations
@@ -177,51 +176,6 @@ function PlayerController({ playerClass = 'warrior', targetPosition }: PlayerPro
       <CuboidCollider args={[0.4, 1, 0.4]} position={[0, 1, 0]} />
       <Character />
     </RigidBody>
-  )
-}
-
-function ClickTarget({ onClick }: { onClick: (pos: [number, number, number]) => void }) {
-  const { camera } = useThree()
-  const raycaster = useRef(new Raycaster())
-  const plane = useRef(new Plane(new Vector3(0, 1, 0), 0))
-
-  const handleClick = (e: React.PointerEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1
-    const y = -((e.clientY - rect.top) / rect.height) * 2 + 1
-
-    raycaster.current.setFromCamera(new Vector2(x, y), camera)
-    const intersection = new Vector3()
-    raycaster.current.ray.intersectPlane(plane.current, intersection)
-
-    if (intersection) {
-      onClick([intersection.x, 0, intersection.z])
-    }
-  }
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        cursor: 'pointer',
-      }}
-      onPointerDown={handleClick}
-    />
-  )
-}
-
-export default function Player({ playerClass = 'warrior' }: { playerClass?: PlayerClass }) {
-  const [targetPosition, setTargetPosition] = useState<[number, number, number] | null>(null)
-
-  return (
-    <>
-      <ClickTarget onClick={setTargetPosition} />
-      <PlayerController playerClass={playerClass} targetPosition={targetPosition} />
-    </>
   )
 }
 
