@@ -1,5 +1,6 @@
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
+import { PCFShadowMap } from 'three'
 
 import Camera from './components/Camera'
 import Lighting from './components/Lighting'
@@ -12,14 +13,14 @@ import './App.css'
 function App() {
   return (
     <div className="game-container">
-      <Canvas shadows camera={{ position: [0, 25, 25], fov: 60 }}>
+      <Canvas shadows={{ type: PCFShadowMap }} camera={{ position: [0, 25, 25], fov: 60 }}>
         <color attach="background" args={['#2a3a2a']} />
         <fog attach="fog" args={['#2a3a2a', 30, 80]} />
 
         <Lighting />
         <Camera />
 
-        <Physics debug={false}>
+        <Physics>
           <Floor />
           <Town />
           <Player playerClass="mage" />

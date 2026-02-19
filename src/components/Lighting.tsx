@@ -1,21 +1,8 @@
-import { useFrame } from '@react-three/fiber'
-import { useRef } from 'react'
-import * as THREE from 'three'
-
 export default function Lighting() {
-  const lightRef = useRef<THREE.DirectionalLight>(null)
-
-  useFrame((state) => {
-    if (lightRef.current) {
-      lightRef.current.position.x = Math.sin(state.clock.elapsedTime * 0.1) * 5
-    }
-  })
-
   return (
     <>
       <ambientLight intensity={0.3} />
       <directionalLight
-        ref={lightRef}
         position={[5, 10, 5]}
         intensity={1}
         castShadow
