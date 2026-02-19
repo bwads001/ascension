@@ -1,7 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier'
 import { useRef, useState } from 'react'
-import { Vector3, Mesh, Raycaster, Plane } from 'three'
+import { Vector2, Vector3, Mesh, Raycaster, Plane } from 'three'
 
 import { usePlayerStore } from '../store/playerStore'
 
@@ -190,7 +190,7 @@ function ClickTarget({ onClick }: { onClick: (pos: [number, number, number]) => 
     const x = ((e.clientX - rect.left) / rect.width) * 2 - 1
     const y = -((e.clientY - rect.top) / rect.height) * 2 + 1
 
-    raycaster.current.setFromCamera(new Vector3(x, y, 0), camera)
+    raycaster.current.setFromCamera(new Vector2(x, y), camera)
     const intersection = new Vector3()
     raycaster.current.ray.intersectPlane(plane.current, intersection)
 
