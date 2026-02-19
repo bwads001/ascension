@@ -1,14 +1,13 @@
-import { useFrame } from '@react-three/fiber'
+import { useFrame, useThree } from '@react-three/fiber'
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier'
-import { useRef } from 'react'
-import { Vector3, Mesh } from 'three'
+import { useRef, useState } from 'react'
+import { Vector3, Mesh, Raycaster, Plane } from 'three'
 
-import useKeyboard from '../hooks/useKeyboard'
 import { usePlayerStore } from '../store/playerStore'
 
-const SPEED = 5
+const SPEED = 8
 
-function Warrior({ color = '#c0c0c0' }: { color?: string }) {
+function Warrior() {
   return (
     <group>
       <mesh castShadow position={[0, 0.5, 0]}>
@@ -21,15 +20,15 @@ function Warrior({ color = '#c0c0c0' }: { color?: string }) {
       </mesh>
       <mesh castShadow position={[0, 1.4, 0]}>
         <boxGeometry args={[0.5, 0.2, 0.5]} />
-        <meshStandardMaterial color={color} metalness={0.6} roughness={0.4} />
+        <meshStandardMaterial color="#c0c0c0" metalness={0.6} roughness={0.4} />
       </mesh>
       <mesh castShadow position={[0.4, 0.7, 0]} rotation={[0, 0, Math.PI / 2]}>
         <boxGeometry args={[0.08, 0.7, 0.05]} />
-        <meshStandardMaterial color={color} metalness={0.8} roughness={0.3} />
+        <meshStandardMaterial color="#c0c0c0" metalness={0.8} roughness={0.3} />
       </mesh>
       <mesh castShadow position={[0.7, 0.7, 0]}>
         <boxGeometry args={[0.15, 0.2, 0.05]} />
-        <meshStandardMaterial color={color} metalness={0.8} roughness={0.3} />
+        <meshStandardMaterial color="#c0c0c0" metalness={0.8} roughness={0.3} />
       </mesh>
       <mesh castShadow position={[-0.4, 0.6, 0.1]} rotation={[0, 0, Math.PI / 6]}>
         <boxGeometry args={[0.4, 0.5, 0.05]} />
@@ -47,12 +46,12 @@ function Warrior({ color = '#c0c0c0' }: { color?: string }) {
   )
 }
 
-function Archer({ color = '#2d5a27' }: { color?: string }) {
+function Archer() {
   return (
     <group>
       <mesh castShadow position={[0, 0.55, 0]}>
         <boxGeometry args={[0.5, 0.9, 0.35]} />
-        <meshStandardMaterial color={color} roughness={0.8} />
+        <meshStandardMaterial color="#2d5a27" roughness={0.8} />
       </mesh>
       <mesh castShadow position={[0, 1.15, 0]}>
         <boxGeometry args={[0.35, 0.35, 0.35]} />
@@ -86,7 +85,7 @@ function Archer({ color = '#2d5a27' }: { color?: string }) {
   )
 }
 
-function Mage({ color = '#6b4c9a' }: { color?: string }) {
+function Mage() {
   const orbRef = useRef<Mesh>(null)
 
   useFrame((state) => {
@@ -99,7 +98,7 @@ function Mage({ color = '#6b4c9a' }: { color?: string }) {
     <group>
       <mesh castShadow position={[0, 0.5, 0]}>
         <coneGeometry args={[0.4, 1, 6]} />
-        <meshStandardMaterial color={color} roughness={0.7} />
+        <meshStandardMaterial color="#6b4c9a" roughness={0.7} />
       </mesh>
       <mesh castShadow position={[0, 1.15, 0]}>
         <boxGeometry args={[0.35, 0.35, 0.35]} />
@@ -140,47 +139,89 @@ type PlayerClass = keyof typeof CLASSES
 
 interface PlayerProps {
   playerClass?: PlayerClass
+  targetPosition: [number, number, number] | null
 }
 
-export default function Player({ playerClass = 'warrior' }: PlayerProps) {
+function PlayerController({ playerClass = 'warrior', targetPosition }: PlayerProps) {
   const ref = useRef<RapierRigidBody>(null)
-  const keys = useKeyboard()
-  const { position, setPosition } = usePlayerStore()
-
+  const { setPosition } = usePlayerStore()
   const Character = CLASSES[playerClass]
 
-  useFrame(() => {
-    if (!ref.current) return
+  useFrame((_, delta) => {
+    if (!ref.current || !targetPosition) return
 
-    const movement = new Vector3()
+    const currentPos = ref.current.translation()
+    const target = new Vector3(...targetPosition)
+    const current = new Vector3(currentPos.x, currentPos.y, currentPos.z)
 
-    if (keys.forward) movement.z -= 1
-    if (keys.backward) movement.z += 1
-    if (keys.left) movement.x -= 1
-    if (keys.right) movement.x += 1
+    const direction = target.clone().sub(current)
+    const distance = direction.length()
 
-    if (movement.length() > 0) {
-      movement.normalize().multiplyScalar(SPEED)
+    if (distance > 0.1) {
+      direction.normalize()
+      const moveDistance = Math.min(SPEED * delta, distance)
+      const newPos = current.clone().add(direction.multiplyScalar(moveDistance))
+      ref.current.setTranslation({ x: newPos.x, y: newPos.y, z: newPos.z }, true)
+      setPosition([newPos.x, newPos.y, newPos.z])
     }
-
-    ref.current.setLinvel({ x: movement.x, y: 0, z: movement.z }, true)
-
-    const pos = ref.current.translation()
-    setPosition([pos.x, pos.y, pos.z])
   })
 
   return (
     <RigidBody
       ref={ref}
-      position={position}
+      position={[0, 0, 0]}
       colliders={false}
-      mass={1}
       type="kinematicPosition"
       lockRotations
     >
       <CuboidCollider args={[0.4, 1, 0.4]} position={[0, 1, 0]} />
       <Character />
     </RigidBody>
+  )
+}
+
+function ClickTarget({ onClick }: { onClick: (pos: [number, number, number]) => void }) {
+  const { camera } = useThree()
+  const raycaster = useRef(new Raycaster())
+  const plane = useRef(new Plane(new Vector3(0, 1, 0), 0))
+
+  const handleClick = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect()
+    const x = ((e.clientX - rect.left) / rect.width) * 2 - 1
+    const y = -((e.clientY - rect.top) / rect.height) * 2 + 1
+
+    raycaster.current.setFromCamera(new Vector3(x, y, 0), camera)
+    const intersection = new Vector3()
+    raycaster.current.ray.intersectPlane(plane.current, intersection)
+
+    if (intersection) {
+      onClick([intersection.x, 0, intersection.z])
+    }
+  }
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        width: '100%',
+        height: '100%',
+        cursor: 'pointer',
+      }}
+      onPointerDown={handleClick}
+    />
+  )
+}
+
+export default function Player({ playerClass = 'warrior' }: { playerClass?: PlayerClass }) {
+  const [targetPosition, setTargetPosition] = useState<[number, number, number] | null>(null)
+
+  return (
+    <>
+      <ClickTarget onClick={setTargetPosition} />
+      <PlayerController playerClass={playerClass} targetPosition={targetPosition} />
+    </>
   )
 }
 

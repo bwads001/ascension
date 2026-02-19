@@ -17,17 +17,10 @@ export default function UI() {
 
       <div className="controls">
         <div>
-          <span className="key">W</span>
-          <span className="key">A</span>
-          <span className="key">S</span>
-          <span className="key">D</span>
-          Move
+          <span className="key">Click</span> Move
         </div>
         <div>
           <span className="key">J</span> / <span className="key">Z</span> Attack
-        </div>
-        <div>
-          <span className="key">Mouse</span> Rotate camera
         </div>
       </div>
     </div>
