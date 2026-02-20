@@ -173,7 +173,7 @@ export default function Monster({ type, position, id }: MonsterProps) {
   const maxHealth = HEALTH[type]
   const monsterData = monsters.get(id)
 
-  const [registered, setRegistered] = useState(false)
+  const wasRegistered = useRef(false)
 
   useEffect(() => {
     registerMonster({
@@ -183,14 +183,18 @@ export default function Monster({ type, position, id }: MonsterProps) {
       health: maxHealth,
       maxHealth,
     })
-    setRegistered(true)
+    wasRegistered.current = true
   }, [id, type, position, maxHealth, registerMonster])
 
   useEffect(() => {
-    if (registered && monsterData?.health !== undefined && monsterData.health <= 0 && !isDead) {
+    if (isDead) return
+
+    if (wasRegistered.current && !monsterData) {
+      setIsDead(true)
+    } else if (monsterData?.health !== undefined && monsterData.health <= 0) {
       setIsDead(true)
     }
-  }, [monsterData?.health, isDead, registered])
+  }, [monsterData, isDead])
 
   useEffect(() => {
     if (isHit) {
