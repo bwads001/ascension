@@ -1,7 +1,7 @@
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { RigidBody, RapierRigidBody } from '@react-three/rapier'
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useMemo } from 'react'
 import { Vector3, Mesh } from 'three'
 
 import { useGameStore } from '../store/gameStore'
@@ -34,7 +34,7 @@ const ATTACK_COOLDOWN = 1000
 const ATTACK_DAMAGE = 10
 
 function HealthBar({ health, maxHealth }: { health: number; maxHealth: number }) {
-  const percent = (health / maxHealth) * 100
+  const percent = Math.max(0, Math.min(100, (health / maxHealth) * 100))
   return (
     <Html center position={[0, 2.5, 0]} style={{ pointerEvents: 'none' }}>
       <div
@@ -52,7 +52,6 @@ function HealthBar({ health, maxHealth }: { health: number; maxHealth: number })
             width: `${percent}%`,
             height: '100%',
             background: percent > 50 ? '#4a4' : percent > 25 ? '#aa4' : '#a44',
-            transition: 'width 0.2s',
           }}
         />
       </div>
@@ -60,7 +59,7 @@ function HealthBar({ health, maxHealth }: { health: number; maxHealth: number })
   )
 }
 
-function Slime({ color = '#5a9a5a', isHit }: { color?: string; isHit: boolean }) {
+function Slime({ isHit }: { isHit: boolean }) {
   const meshRef = useRef<Mesh>(null)
 
   useFrame((state) => {
@@ -74,7 +73,11 @@ function Slime({ color = '#5a9a5a', isHit }: { color?: string; isHit: boolean })
     <group>
       <mesh ref={meshRef} castShadow position={[0, 0.4, 0]}>
         <sphereGeometry args={[0.4, 16, 12]} />
-        <meshStandardMaterial color={isHit ? '#ff6666' : color} roughness={0.3} metalness={0.1} />
+        <meshStandardMaterial
+          color={isHit ? '#ff6666' : '#5a9a5a'}
+          roughness={0.3}
+          metalness={0.1}
+        />
       </mesh>
       <mesh position={[-0.1, 0.45, 0.35]}>
         <sphereGeometry args={[0.08]} />
@@ -160,19 +163,22 @@ function Skeleton({ isHit }: { isHit: boolean }) {
 
 export default function Monster({ type, position, id }: MonsterProps) {
   const ref = useRef<RapierRigidBody>(null)
-  const [wanderTarget, setWanderTarget] = useState<Vector3>(new Vector3(...position))
-  const [canAttack, setCanAttack] = useState(true)
-  const [isHit, setIsHit] = useState(false)
+  const wanderTarget = useRef(new Vector3(...position))
+  const canAttack = useRef(true)
+  const lastHealth = useRef(HEALTH[type])
+  const attackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const playerPosition = usePlayerStore((state) => state.position)
   const takeDamage = usePlayerStore((state) => state.takeDamage)
-  const { registerMonster, updateMonsterPosition, monsters } = useGameStore()
+  const monsterData = useGameStore((state) => state.monsters.get(id))
+  const registerMonster = useGameStore((state) => state.registerMonster)
 
   const speed = SPEEDS[type]
   const maxHealth = HEALTH[type]
-  const monsterData = monsters.get(id)
-
   const isDead = monsterData?.dead ?? false
+  const health = monsterData?.health ?? maxHealth
+
+  const [isHit, setIsHit] = useState(false)
 
   useEffect(() => {
     registerMonster({
@@ -186,49 +192,43 @@ export default function Monster({ type, position, id }: MonsterProps) {
   }, [id, type, position, maxHealth, registerMonster])
 
   useEffect(() => {
-    if (isHit) {
-      const timeout = setTimeout(() => setIsHit(false), 150)
-      return () => clearTimeout(timeout)
+    if (health < lastHealth.current) {
+      setIsHit(true)
+      const t = setTimeout(() => setIsHit(false), 150)
+      return () => clearTimeout(t)
     }
-  }, [isHit])
+    lastHealth.current = health
+  }, [health])
 
   useEffect(() => {
-    const interval = setInterval(
-      () => {
-        if (ref.current && !isDead) {
-          const currentPos = ref.current.translation()
-          const offsetX = (Math.random() - 0.5) * 8
-          const offsetZ = (Math.random() - 0.5) * 8
-          let newX = currentPos.x + offsetX
-          let newZ = currentPos.z + offsetZ
+    const interval = setInterval(() => {
+      if (!isDead && ref.current) {
+        const currentPos = ref.current.translation()
+        const offsetX = (Math.random() - 0.5) * 8
+        const offsetZ = (Math.random() - 0.5) * 8
+        let newX = currentPos.x + offsetX
+        let newZ = currentPos.z + offsetZ
 
-          if (isInTown(newX, newZ)) {
-            const angle = Math.atan2(newZ, newX)
-            newX = Math.cos(angle) * (TOWN_RADIUS + 3)
-            newZ = Math.sin(angle) * (TOWN_RADIUS + 3)
-          }
-
-          setWanderTarget(new Vector3(newX, 0, newZ))
+        if (isInTown(newX, newZ)) {
+          const angle = Math.atan2(newZ, newX)
+          newX = Math.cos(angle) * (TOWN_RADIUS + 3)
+          newZ = Math.sin(angle) * (TOWN_RADIUS + 3)
         }
-      },
-      2000 + Math.random() * 3000
-    )
+
+        wanderTarget.current.set(newX, 0, newZ)
+      }
+    }, 3000)
 
     return () => clearInterval(interval)
   }, [isDead])
 
-  const prevHealthRef = useRef(monsterData?.health)
   useEffect(() => {
-    if (
-      monsterData &&
-      prevHealthRef.current !== undefined &&
-      monsterData.health < prevHealthRef.current &&
-      !isHit
-    ) {
-      setIsHit(true)
+    return () => {
+      if (attackTimeout.current) {
+        clearTimeout(attackTimeout.current)
+      }
     }
-    prevHealthRef.current = monsterData?.health
-  }, [monsterData?.health, isHit, monsterData])
+  }, [])
 
   useFrame((_, delta) => {
     if (!ref.current || isDead) return
@@ -249,13 +249,15 @@ export default function Monster({ type, position, id }: MonsterProps) {
       target = new Vector3(playerPosition[0], 0, playerPosition[2])
       currentSpeed = speed * 1.3
 
-      if (playerDistance <= ATTACK_RANGE && canAttack) {
+      if (playerDistance <= ATTACK_RANGE && canAttack.current) {
         takeDamage(ATTACK_DAMAGE)
-        setCanAttack(false)
-        setTimeout(() => setCanAttack(true), ATTACK_COOLDOWN)
+        canAttack.current = false
+        attackTimeout.current = setTimeout(() => {
+          canAttack.current = true
+        }, ATTACK_COOLDOWN)
       }
     } else {
-      target = wanderTarget
+      target = wanderTarget.current
     }
 
     const direction = target.clone().sub(current)
@@ -272,23 +274,21 @@ export default function Monster({ type, position, id }: MonsterProps) {
       }
 
       ref.current.setTranslation({ x: newPos.x, y: newPos.y, z: newPos.z }, true)
-      updateMonsterPosition(id, [newPos.x, newPos.y, newPos.z])
     }
   })
 
   if (isDead) return null
 
-  const MonsterMesh = () => {
-    const props = { isHit }
+  const MonsterMesh = useMemo(() => {
     switch (type) {
       case 'slime':
-        return <Slime {...props} />
+        return <Slime isHit={isHit} />
       case 'rat':
-        return <Rat {...props} />
+        return <Rat isHit={isHit} />
       case 'skeleton':
-        return <Skeleton {...props} />
+        return <Skeleton isHit={isHit} />
     }
-  }
+  }, [type, isHit])
 
   return (
     <RigidBody
@@ -298,7 +298,7 @@ export default function Monster({ type, position, id }: MonsterProps) {
       type="kinematicPosition"
       lockRotations
     >
-      <MonsterMesh />
+      {MonsterMesh}
       {monsterData && <HealthBar health={monsterData.health} maxHealth={monsterData.maxHealth} />}
     </RigidBody>
   )
