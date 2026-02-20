@@ -38,7 +38,12 @@ function App() {
           <Wilderness />
           <Player playerClass="mage" />
           {MONSTER_SPAWNS.map((spawn, i) => (
-            <Monster key={`monster-${i}`} type={spawn.type} position={spawn.position} />
+            <Monster
+              key={`monster-${i}`}
+              id={`monster-${i}`}
+              type={spawn.type}
+              position={spawn.position}
+            />
           ))}
         </Physics>
       </Canvas>

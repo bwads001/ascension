@@ -1,11 +1,15 @@
 import { useFrame } from '@react-three/fiber'
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier'
-import { useRef } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import { Vector3, Mesh } from 'three'
 
+import { useGameStore } from '../store/gameStore'
 import { usePlayerStore } from '../store/playerStore'
 
 const SPEED = 8
+const ATTACK_RANGE = 2
+const ATTACK_COOLDOWN = 500
+const ATTACK_DAMAGE = 25
 
 function Warrior() {
   return (
@@ -143,8 +147,60 @@ interface PlayerProps {
 
 export default function Player({ playerClass = 'warrior' }: PlayerProps) {
   const ref = useRef<RapierRigidBody>(null)
-  const { position, setPosition, targetPosition } = usePlayerStore()
+  const { position, setPosition, targetPosition, addKill } = usePlayerStore()
+  const { monsters, damageMonster } = useGameStore()
   const Character = CLASSES[playerClass]
+  const [canAttack, setCanAttack] = useState(true)
+  const [isAttacking, setIsAttacking] = useState(false)
+
+  useEffect(() => {
+    const handleContextMenu = (e: MouseEvent) => {
+      e.preventDefault()
+
+      if (!canAttack || !ref.current) return
+
+      const currentPos = ref.current.translation()
+      const playerPos: [number, number, number] = [currentPos.x, currentPos.y, currentPos.z]
+
+      const monstersInRange = Array.from(monsters.entries())
+        .filter(([, monster]) => {
+          const dx = monster.position[0] - playerPos[0]
+          const dz = monster.position[2] - playerPos[2]
+          const distance = Math.sqrt(dx * dx + dz * dz)
+          return distance <= ATTACK_RANGE
+        })
+        .map(([id, monster]) => {
+          const dx = monster.position[0] - playerPos[0]
+          const dz = monster.position[2] - playerPos[2]
+          return { id, distance: Math.sqrt(dx * dx + dz * dz) }
+        })
+        // oxlint-disable-next-line unicorn/no-array-sort
+        .sort(
+          (a: { id: string; distance: number }, b: { id: string; distance: number }) =>
+            a.distance - b.distance
+        )
+
+      const nearestMonster = monstersInRange[0]
+
+      if (nearestMonster) {
+        setIsAttacking(true)
+        setTimeout(() => setIsAttacking(false), 200)
+
+        const monster = monsters.get(nearestMonster.id)
+        damageMonster(nearestMonster.id, ATTACK_DAMAGE)
+
+        if (monster && monster.health <= ATTACK_DAMAGE) {
+          addKill()
+        }
+
+        setCanAttack(false)
+        setTimeout(() => setCanAttack(true), ATTACK_COOLDOWN)
+      }
+    }
+
+    window.addEventListener('contextmenu', handleContextMenu)
+    return () => window.removeEventListener('contextmenu', handleContextMenu)
+  }, [canAttack, monsters, damageMonster, addKill])
 
   useFrame((_, delta) => {
     if (!ref.current || !targetPosition) return
@@ -174,7 +230,9 @@ export default function Player({ playerClass = 'warrior' }: PlayerProps) {
       lockRotations
     >
       <CuboidCollider args={[0.4, 1, 0.4]} position={[0, 1, 0]} />
-      <Character />
+      <group scale={isAttacking ? 1.1 : 1}>
+        <Character />
+      </group>
     </RigidBody>
   )
 }

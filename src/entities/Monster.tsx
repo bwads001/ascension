@@ -3,6 +3,8 @@ import { RigidBody, RapierRigidBody } from '@react-three/rapier'
 import { useRef, useState, useEffect } from 'react'
 import { Vector3, Mesh } from 'three'
 
+import { useGameStore } from '../store/gameStore'
+import { usePlayerStore } from '../store/playerStore'
 import { isInTown, TOWN_RADIUS } from '../world/Wilderness'
 
 type MonsterType = 'slime' | 'rat' | 'skeleton'
@@ -10,6 +12,7 @@ type MonsterType = 'slime' | 'rat' | 'skeleton'
 interface MonsterProps {
   type: MonsterType
   position: [number, number, number]
+  id: string
 }
 
 const SPEEDS: Record<MonsterType, number> = {
@@ -18,7 +21,18 @@ const SPEEDS: Record<MonsterType, number> = {
   skeleton: 2,
 }
 
-function Slime({ color = '#5a9a5a' }: { color?: string }) {
+const HEALTH: Record<MonsterType, number> = {
+  slime: 25,
+  rat: 15,
+  skeleton: 50,
+}
+
+const AGGRO_RANGE = 8
+const ATTACK_RANGE = 1.5
+const ATTACK_COOLDOWN = 1000
+const ATTACK_DAMAGE = 10
+
+function Slime({ color = '#5a9a5a', isHit }: { color?: string; isHit: boolean }) {
   const meshRef = useRef<Mesh>(null)
 
   useFrame((state) => {
@@ -32,7 +46,7 @@ function Slime({ color = '#5a9a5a' }: { color?: string }) {
     <group>
       <mesh ref={meshRef} castShadow position={[0, 0.4, 0]}>
         <sphereGeometry args={[0.4, 16, 12]} />
-        <meshStandardMaterial color={color} roughness={0.3} metalness={0.1} />
+        <meshStandardMaterial color={isHit ? '#ff6666' : color} roughness={0.3} metalness={0.1} />
       </mesh>
       <mesh position={[-0.1, 0.45, 0.35]}>
         <sphereGeometry args={[0.08]} />
@@ -46,16 +60,16 @@ function Slime({ color = '#5a9a5a' }: { color?: string }) {
   )
 }
 
-function Rat() {
+function Rat({ isHit }: { isHit: boolean }) {
   return (
     <group>
       <mesh castShadow position={[0, 0.25, 0]}>
         <capsuleGeometry args={[0.15, 0.4, 4, 8]} />
-        <meshStandardMaterial color="#5c4a3d" roughness={0.9} />
+        <meshStandardMaterial color={isHit ? '#ff6666' : '#5c4a3d'} roughness={0.9} />
       </mesh>
       <mesh castShadow position={[0.3, 0.25, 0]}>
         <sphereGeometry args={[0.12, 8, 8]} />
-        <meshStandardMaterial color="#5c4a3d" roughness={0.9} />
+        <meshStandardMaterial color={isHit ? '#ff6666' : '#5c4a3d'} roughness={0.9} />
       </mesh>
       <mesh position={[0.35, 0.28, 0.08]}>
         <sphereGeometry args={[0.04]} />
@@ -77,16 +91,16 @@ function Rat() {
   )
 }
 
-function Skeleton() {
+function Skeleton({ isHit }: { isHit: boolean }) {
   return (
     <group>
       <mesh castShadow position={[0, 0.8, 0]}>
         <boxGeometry args={[0.3, 0.8, 0.2]} />
-        <meshStandardMaterial color="#e8e8e0" roughness={0.8} />
+        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
       </mesh>
       <mesh castShadow position={[0, 1.4, 0]}>
         <boxGeometry args={[0.25, 0.25, 0.25]} />
-        <meshStandardMaterial color="#e8e8e0" roughness={0.8} />
+        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
       </mesh>
       <mesh position={[-0.06, 1.42, 0.13]}>
         <sphereGeometry args={[0.04]} />
@@ -98,41 +112,66 @@ function Skeleton() {
       </mesh>
       <mesh castShadow position={[-0.25, 0.8, 0]} rotation={[0, 0, 0.5]}>
         <boxGeometry args={[0.08, 0.5, 0.08]} />
-        <meshStandardMaterial color="#e8e8e0" roughness={0.8} />
+        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
       </mesh>
       <mesh castShadow position={[0.25, 0.8, 0]} rotation={[0, 0, -0.5]}>
         <boxGeometry args={[0.08, 0.5, 0.08]} />
-        <meshStandardMaterial color="#e8e8e0" roughness={0.8} />
+        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
       </mesh>
       <mesh castShadow position={[-0.1, 0.2, 0]}>
         <boxGeometry args={[0.1, 0.4, 0.1]} />
-        <meshStandardMaterial color="#e8e8e0" roughness={0.8} />
+        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
       </mesh>
       <mesh castShadow position={[0.1, 0.2, 0]}>
         <boxGeometry args={[0.1, 0.4, 0.1]} />
-        <meshStandardMaterial color="#e8e8e0" roughness={0.8} />
+        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
       </mesh>
     </group>
   )
 }
 
-const MONSTERS: Record<MonsterType, React.FC> = {
-  slime: Slime,
-  rat: Rat,
-  skeleton: Skeleton,
-}
-
-export default function Monster({ type, position }: MonsterProps) {
+export default function Monster({ type, position, id }: MonsterProps) {
   const ref = useRef<RapierRigidBody>(null)
   const [wanderTarget, setWanderTarget] = useState<Vector3>(new Vector3(...position))
+  const [canAttack, setCanAttack] = useState(true)
+  const [isHit, setIsHit] = useState(false)
+  const [isDead, setIsDead] = useState(false)
 
-  const MonsterMesh = MONSTERS[type]
+  const playerPosition = usePlayerStore((state) => state.position)
+  const takeDamage = usePlayerStore((state) => state.takeDamage)
+  const { registerMonster, updateMonsterPosition, monsters } = useGameStore()
+
   const speed = SPEEDS[type]
+  const maxHealth = HEALTH[type]
+  const monsterData = monsters.get(id)
+
+  useEffect(() => {
+    registerMonster({
+      id,
+      type,
+      position,
+      health: maxHealth,
+      maxHealth,
+    })
+  }, [id, type, position, maxHealth, registerMonster])
+
+  useEffect(() => {
+    if (monsterData?.health !== undefined && monsterData.health <= 0 && !isDead) {
+      setIsDead(true)
+    }
+  }, [monsterData?.health, isDead])
+
+  useEffect(() => {
+    if (isHit) {
+      const timeout = setTimeout(() => setIsHit(false), 150)
+      return () => clearTimeout(timeout)
+    }
+  }, [isHit])
 
   useEffect(() => {
     const interval = setInterval(
       () => {
-        if (ref.current) {
+        if (ref.current && !isDead) {
           const currentPos = ref.current.translation()
           const offsetX = (Math.random() - 0.5) * 8
           const offsetZ = (Math.random() - 0.5) * 8
@@ -152,20 +191,55 @@ export default function Monster({ type, position }: MonsterProps) {
     )
 
     return () => clearInterval(interval)
-  }, [])
+  }, [isDead])
+
+  const prevHealthRef = useRef(monsterData?.health)
+  useEffect(() => {
+    if (
+      monsterData &&
+      prevHealthRef.current !== undefined &&
+      monsterData.health < prevHealthRef.current &&
+      !isHit
+    ) {
+      setIsHit(true)
+    }
+    prevHealthRef.current = monsterData?.health
+  }, [monsterData?.health, isHit, monsterData])
 
   useFrame((_, delta) => {
-    if (!ref.current) return
+    if (!ref.current || isDead) return
 
     const currentPos = ref.current.translation()
     const current = new Vector3(currentPos.x, currentPos.y, currentPos.z)
 
-    const direction = wanderTarget.clone().sub(current)
+    const dx = playerPosition[0] - currentPos.x
+    const dz = playerPosition[2] - currentPos.z
+    const playerDistance = Math.sqrt(dx * dx + dz * dz)
+
+    const playerInTown = isInTown(playerPosition[0], playerPosition[2])
+
+    let target: Vector3
+    let currentSpeed = speed
+
+    if (!playerInTown && playerDistance <= AGGRO_RANGE) {
+      target = new Vector3(playerPosition[0], 0, playerPosition[2])
+      currentSpeed = speed * 1.3
+
+      if (playerDistance <= ATTACK_RANGE && canAttack) {
+        takeDamage(ATTACK_DAMAGE)
+        setCanAttack(false)
+        setTimeout(() => setCanAttack(true), ATTACK_COOLDOWN)
+      }
+    } else {
+      target = wanderTarget
+    }
+
+    const direction = target.clone().sub(current)
     const distance = direction.length()
 
     if (distance > 0.5) {
       direction.normalize()
-      const newPos = current.clone().add(direction.multiplyScalar(speed * delta))
+      const newPos = current.clone().add(direction.multiplyScalar(currentSpeed * delta))
 
       if (isInTown(newPos.x, newPos.z)) {
         const angle = Math.atan2(newPos.z, newPos.x)
@@ -174,8 +248,23 @@ export default function Monster({ type, position }: MonsterProps) {
       }
 
       ref.current.setTranslation({ x: newPos.x, y: newPos.y, z: newPos.z }, true)
+      updateMonsterPosition(id, [newPos.x, newPos.y, newPos.z])
     }
   })
+
+  if (isDead) return null
+
+  const MonsterMesh = () => {
+    const props = { isHit }
+    switch (type) {
+      case 'slime':
+        return <Slime {...props} />
+      case 'rat':
+        return <Rat {...props} />
+      case 'skeleton':
+        return <Skeleton {...props} />
+    }
+  }
 
   return (
     <RigidBody
