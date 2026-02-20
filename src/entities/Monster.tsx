@@ -277,8 +277,6 @@ export default function Monster({ type, position, id }: MonsterProps) {
     }
   })
 
-  if (isDead) return null
-
   const MonsterMesh = useMemo(() => {
     switch (type) {
       case 'slime':
@@ -290,14 +288,10 @@ export default function Monster({ type, position, id }: MonsterProps) {
     }
   }, [type, isHit])
 
+  if (isDead) return null
+
   return (
-    <RigidBody
-      ref={ref}
-      position={position}
-      colliders={false}
-      type="kinematicPosition"
-      lockRotations
-    >
+    <RigidBody ref={ref} position={position} colliders={false} type="kinematicPosition" lockRotations>
       {MonsterMesh}
       {monsterData && <HealthBar health={monsterData.health} maxHealth={monsterData.maxHealth} />}
     </RigidBody>
