@@ -1,3 +1,4 @@
+import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { RigidBody, RapierRigidBody } from '@react-three/rapier'
 import { useRef, useState, useEffect } from 'react'
@@ -31,6 +32,33 @@ const AGGRO_RANGE = 8
 const ATTACK_RANGE = 1.5
 const ATTACK_COOLDOWN = 1000
 const ATTACK_DAMAGE = 10
+
+function HealthBar({ health, maxHealth }: { health: number; maxHealth: number }) {
+  const percent = (health / maxHealth) * 100
+  return (
+    <Html center position={[0, 2.5, 0]} style={{ pointerEvents: 'none' }}>
+      <div
+        style={{
+          width: '50px',
+          height: '6px',
+          background: 'rgba(0,0,0,0.5)',
+          border: '1px solid #333',
+          borderRadius: '2px',
+          overflow: 'hidden',
+        }}
+      >
+        <div
+          style={{
+            width: `${percent}%`,
+            height: '100%',
+            background: percent > 50 ? '#4a4' : percent > 25 ? '#aa4' : '#a44',
+            transition: 'width 0.2s',
+          }}
+        />
+      </div>
+    </Html>
+  )
+}
 
 function Slime({ color = '#5a9a5a', isHit }: { color?: string; isHit: boolean }) {
   const meshRef = useRef<Mesh>(null)
@@ -156,10 +184,12 @@ export default function Monster({ type, position, id }: MonsterProps) {
   }, [id, type, position, maxHealth, registerMonster])
 
   useEffect(() => {
-    if (monsterData?.health !== undefined && monsterData.health <= 0 && !isDead) {
+    if (!monsterData && !isDead) {
+      setIsDead(true)
+    } else if (monsterData?.health !== undefined && monsterData.health <= 0 && !isDead) {
       setIsDead(true)
     }
-  }, [monsterData?.health, isDead])
+  }, [monsterData, isDead])
 
   useEffect(() => {
     if (isHit) {
@@ -275,6 +305,7 @@ export default function Monster({ type, position, id }: MonsterProps) {
       lockRotations
     >
       <MonsterMesh />
+      {monsterData && <HealthBar health={monsterData.health} maxHealth={monsterData.maxHealth} />}
     </RigidBody>
   )
 }

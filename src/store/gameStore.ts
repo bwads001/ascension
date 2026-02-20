@@ -1,5 +1,7 @@
 import { create } from 'zustand'
 
+import { usePlayerStore } from './playerStore'
+
 export interface MonsterData {
   id: string
   type: 'slime' | 'rat' | 'skeleton'
@@ -46,6 +48,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         const newHealth = Math.max(0, monster.health - amount)
         if (newHealth <= 0) {
           newMonsters.delete(id)
+          usePlayerStore.getState().addKill()
         } else {
           newMonsters.set(id, { ...monster, health: newHealth })
         }

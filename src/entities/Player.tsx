@@ -7,7 +7,7 @@ import { useGameStore } from '../store/gameStore'
 import { usePlayerStore } from '../store/playerStore'
 
 const SPEED = 8
-const ATTACK_RANGE = 2
+const ATTACK_RANGE = 3
 const ATTACK_COOLDOWN = 500
 const ATTACK_DAMAGE = 25
 
@@ -147,7 +147,7 @@ interface PlayerProps {
 
 export default function Player({ playerClass = 'warrior' }: PlayerProps) {
   const ref = useRef<RapierRigidBody>(null)
-  const { position, setPosition, targetPosition, addKill } = usePlayerStore()
+  const { position, setPosition, targetPosition } = usePlayerStore()
   const { monsters, damageMonster } = useGameStore()
   const Character = CLASSES[playerClass]
   const [canAttack, setCanAttack] = useState(true)
@@ -186,12 +186,7 @@ export default function Player({ playerClass = 'warrior' }: PlayerProps) {
         setIsAttacking(true)
         setTimeout(() => setIsAttacking(false), 200)
 
-        const monster = monsters.get(nearestMonster.id)
         damageMonster(nearestMonster.id, ATTACK_DAMAGE)
-
-        if (monster && monster.health <= ATTACK_DAMAGE) {
-          addKill()
-        }
 
         setCanAttack(false)
         setTimeout(() => setCanAttack(true), ATTACK_COOLDOWN)
@@ -200,7 +195,7 @@ export default function Player({ playerClass = 'warrior' }: PlayerProps) {
 
     window.addEventListener('contextmenu', handleContextMenu)
     return () => window.removeEventListener('contextmenu', handleContextMenu)
-  }, [canAttack, monsters, damageMonster, addKill])
+  }, [canAttack, monsters, damageMonster])
 
   useFrame((_, delta) => {
     if (!ref.current || !targetPosition) return
