@@ -8,6 +8,7 @@ export interface MonsterData {
   position: [number, number, number]
   health: number
   maxHealth: number
+  dead: boolean
 }
 
 interface GameState {
@@ -26,6 +27,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   registerMonster: (monster) =>
     set((state) => {
       const newMonsters = new Map(state.monsters)
+      const existing = newMonsters.get(monster.id)
+      if (existing && existing.dead) {
+        return { monsters: newMonsters }
+      }
       newMonsters.set(monster.id, monster)
       return { monsters: newMonsters }
     }),
@@ -34,7 +39,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => {
       const newMonsters = new Map(state.monsters)
       const monster = newMonsters.get(id)
-      if (monster) {
+      if (monster && !monster.dead) {
         newMonsters.set(id, { ...monster, position })
       }
       return { monsters: newMonsters }
@@ -44,10 +49,10 @@ export const useGameStore = create<GameState>((set, get) => ({
     set((state) => {
       const newMonsters = new Map(state.monsters)
       const monster = newMonsters.get(id)
-      if (monster) {
+      if (monster && !monster.dead) {
         const newHealth = Math.max(0, monster.health - amount)
         if (newHealth <= 0) {
-          newMonsters.delete(id)
+          newMonsters.set(id, { ...monster, health: 0, dead: true })
           usePlayerStore.getState().addKill()
         } else {
           newMonsters.set(id, { ...monster, health: newHealth })
@@ -69,6 +74,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const monsters = get().monsters
     const result: MonsterData[] = []
     monsters.forEach((monster) => {
+      if (monster.dead) return
       const dx = monster.position[0] - position[0]
       const dz = monster.position[2] - position[2]
       const distance = Math.sqrt(dx * dx + dz * dz)

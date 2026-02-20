@@ -163,7 +163,6 @@ export default function Monster({ type, position, id }: MonsterProps) {
   const [wanderTarget, setWanderTarget] = useState<Vector3>(new Vector3(...position))
   const [canAttack, setCanAttack] = useState(true)
   const [isHit, setIsHit] = useState(false)
-  const [isDead, setIsDead] = useState(false)
 
   const playerPosition = usePlayerStore((state) => state.position)
   const takeDamage = usePlayerStore((state) => state.takeDamage)
@@ -173,7 +172,7 @@ export default function Monster({ type, position, id }: MonsterProps) {
   const maxHealth = HEALTH[type]
   const monsterData = monsters.get(id)
 
-  const wasRegistered = useRef(false)
+  const isDead = monsterData?.dead ?? false
 
   useEffect(() => {
     registerMonster({
@@ -182,19 +181,9 @@ export default function Monster({ type, position, id }: MonsterProps) {
       position,
       health: maxHealth,
       maxHealth,
+      dead: false,
     })
-    wasRegistered.current = true
   }, [id, type, position, maxHealth, registerMonster])
-
-  useEffect(() => {
-    if (isDead) return
-
-    if (wasRegistered.current && !monsterData) {
-      setIsDead(true)
-    } else if (monsterData?.health !== undefined && monsterData.health <= 0) {
-      setIsDead(true)
-    }
-  }, [monsterData, isDead])
 
   useEffect(() => {
     if (isHit) {

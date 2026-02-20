@@ -164,6 +164,7 @@ export default function Player({ playerClass = 'warrior' }: PlayerProps) {
 
       const monstersInRange = Array.from(monsters.entries())
         .filter(([, monster]) => {
+          if (monster.dead) return false
           const dx = monster.position[0] - playerPos[0]
           const dz = monster.position[2] - playerPos[2]
           const distance = Math.sqrt(dx * dx + dz * dz)
