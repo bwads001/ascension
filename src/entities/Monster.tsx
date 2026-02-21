@@ -1,7 +1,7 @@
 import { Html } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import { RigidBody, RapierRigidBody } from '@react-three/rapier'
-import { useRef, useState, useEffect, useMemo } from 'react'
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react'
 import { Vector3, Mesh } from 'three'
 
 import { useGameStore } from '../store/gameStore'
@@ -32,6 +32,7 @@ const AGGRO_RANGE = 8
 const ATTACK_RANGE = 1.5
 const ATTACK_COOLDOWN = 1000
 const ATTACK_DAMAGE = 10
+const PLAYER_ATTACK_RANGE = 3
 
 function HealthBar({ health, maxHealth }: { health: number; maxHealth: number }) {
   const percent = Math.max(0, Math.min(100, (health / maxHealth) * 100))
@@ -59,7 +60,7 @@ function HealthBar({ health, maxHealth }: { health: number; maxHealth: number })
   )
 }
 
-function Slime({ isHit }: { isHit: boolean }) {
+function Slime({ isHit, onClick }: { isHit: boolean; onClick?: () => void }) {
   const meshRef = useRef<Mesh>(null)
 
   useFrame((state) => {
@@ -70,7 +71,7 @@ function Slime({ isHit }: { isHit: boolean }) {
   })
 
   return (
-    <group>
+    <group onClick={onClick}>
       <mesh ref={meshRef} castShadow position={[0, 0.4, 0]}>
         <sphereGeometry args={[0.4, 16, 12]} />
         <meshStandardMaterial
@@ -91,9 +92,9 @@ function Slime({ isHit }: { isHit: boolean }) {
   )
 }
 
-function Rat({ isHit }: { isHit: boolean }) {
+function Rat({ isHit, onClick }: { isHit: boolean; onClick?: () => void }) {
   return (
-    <group>
+    <group onClick={onClick}>
       <mesh castShadow position={[0, 0.25, 0]}>
         <capsuleGeometry args={[0.15, 0.4, 4, 8]} />
         <meshStandardMaterial color={isHit ? '#ff6666' : '#5c4a3d'} roughness={0.9} />
@@ -122,9 +123,9 @@ function Rat({ isHit }: { isHit: boolean }) {
   )
 }
 
-function Skeleton({ isHit }: { isHit: boolean }) {
+function Skeleton({ isHit, onClick }: { isHit: boolean; onClick?: () => void }) {
   return (
-    <group>
+    <group onClick={onClick}>
       <mesh castShadow position={[0, 0.8, 0]}>
         <boxGeometry args={[0.3, 0.8, 0.2]} />
         <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
@@ -167,12 +168,14 @@ export default function Monster({ type, position, id }: MonsterProps) {
   const canAttack = useRef(true)
   const lastHealth = useRef(HEALTH[type])
   const attackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const canBeAttacked = useRef(true)
 
   const playerPosition = usePlayerStore((state) => state.position)
   const playerIsDead = usePlayerStore((state) => state.isDead)
   const takeDamage = usePlayerStore((state) => state.takeDamage)
   const monsterData = useGameStore((state) => state.monsters.get(id))
   const registerMonster = useGameStore((state) => state.registerMonster)
+  const damageMonster = useGameStore((state) => state.damageMonster)
 
   const speed = SPEEDS[type]
   const maxHealth = HEALTH[type]
@@ -180,6 +183,25 @@ export default function Monster({ type, position, id }: MonsterProps) {
   const health = monsterData?.health ?? maxHealth
 
   const [isHit, setIsHit] = useState(false)
+
+  const handleAttack = useCallback(() => {
+    if (playerIsDead || isDead || !canBeAttacked.current) return
+
+    const currentPos = ref.current?.translation()
+    if (!currentPos) return
+
+    const dx = playerPosition[0] - currentPos.x
+    const dz = playerPosition[2] - currentPos.z
+    const distance = Math.sqrt(dx * dx + dz * dz)
+
+    if (distance <= PLAYER_ATTACK_RANGE) {
+      damageMonster(id, 25)
+      canBeAttacked.current = false
+      setTimeout(() => {
+        canBeAttacked.current = true
+      }, 500)
+    }
+  }, [playerIsDead, isDead, playerPosition, damageMonster, id])
 
   useEffect(() => {
     registerMonster({
@@ -279,15 +301,16 @@ export default function Monster({ type, position, id }: MonsterProps) {
   })
 
   const MonsterMesh = useMemo(() => {
+    const onClick = () => handleAttack()
     switch (type) {
       case 'slime':
-        return <Slime isHit={isHit} />
+        return <Slime isHit={isHit} onClick={onClick} />
       case 'rat':
-        return <Rat isHit={isHit} />
+        return <Rat isHit={isHit} onClick={onClick} />
       case 'skeleton':
-        return <Skeleton isHit={isHit} />
+        return <Skeleton isHit={isHit} onClick={onClick} />
     }
-  }, [type, isHit])
+  }, [type, isHit, handleAttack])
 
   if (isDead) return null
 
