@@ -410,10 +410,10 @@ interface NetworkService {
 
 ### Phase 4: AI
 
-- [ ] Implement `AISystem`
-- [ ] Create `Monster` entity (render-only)
-- [ ] Wire up wander behavior
-- [ ] Wire up aggro behavior
+- [x] Implement `AISystem`
+- [x] Create `Monster` entity (render-only)
+- [x] Wire up wander behavior
+- [x] Wire up aggro behavior
 - [ ] Verify monsters move and chase
 
 ### Phase 5: Combat

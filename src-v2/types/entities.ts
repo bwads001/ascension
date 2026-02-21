@@ -39,6 +39,7 @@ export interface AIComponent {
   homePosition: [number, number, number]
   wanderTarget: [number, number, number]
   lastWanderTime: number
+  targetId: string | null
 }
 
 export interface PlayerComponent {
@@ -119,6 +120,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       homePosition: [0, 0, 0],
       wanderTarget: [0, 0, 0],
       lastWanderTime: 0,
+      targetId: null,
     },
     monster: { type: 'slime', speed: 1.5 },
     render: { visible: true, highlighted: false, opacity: 1 },
@@ -138,6 +140,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       homePosition: [0, 0, 0],
       wanderTarget: [0, 0, 0],
       lastWanderTime: 0,
+      targetId: null,
     },
     monster: { type: 'rat', speed: 3 },
     render: { visible: true, highlighted: false, opacity: 1 },
@@ -157,6 +160,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       homePosition: [0, 0, 0],
       wanderTarget: [0, 0, 0],
       lastWanderTime: 0,
+      targetId: null,
     },
     monster: { type: 'skeleton', speed: 2 },
     render: { visible: true, highlighted: false, opacity: 1 },
