@@ -1,4 +1,7 @@
 import { RigidBody } from '@react-three/rapier'
+import { useState } from 'react'
+
+import { usePlayerStore } from '../store/playerStore'
 
 function GrassTuft({ position }: { position: [number, number, number] }) {
   return (
@@ -62,6 +65,66 @@ function Tree({ position }: { position: [number, number, number] }) {
         <coneGeometry args={[0.9, 1.5, 8]} />
         <meshStandardMaterial color="#3d6b3d" roughness={0.9} />
       </mesh>
+    </group>
+  )
+}
+
+const KILLS_REQUIRED = 5
+
+function TowerEntrance() {
+  const kills = usePlayerStore((state) => state.kills)
+  const setFloor = usePlayerStore((state) => state.setFloor)
+  const isDead = usePlayerStore((state) => state.isDead)
+  const [showLockedMessage, setShowLockedMessage] = useState(false)
+  const isUnlocked = kills >= KILLS_REQUIRED
+
+  const handleClick = () => {
+    if (isDead) return
+    if (isUnlocked) {
+      setFloor(1)
+    } else {
+      setShowLockedMessage(true)
+      setTimeout(() => setShowLockedMessage(false), 2000)
+    }
+  }
+
+  return (
+    <group position={[0, 0, 38]} onClick={handleClick}>
+      <RigidBody type="fixed" colliders="cuboid" position={[-2, 1.5, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[1, 3, 1]} />
+          <meshStandardMaterial color="#4a4a4a" roughness={0.9} />
+        </mesh>
+      </RigidBody>
+      <RigidBody type="fixed" colliders="cuboid" position={[2, 1.5, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[1, 3, 1]} />
+          <meshStandardMaterial color="#4a4a4a" roughness={0.9} />
+        </mesh>
+      </RigidBody>
+      <RigidBody type="fixed" colliders="cuboid" position={[0, 3.25, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[5, 0.5, 1]} />
+          <meshStandardMaterial color="#3a3a3a" roughness={0.9} />
+        </mesh>
+      </RigidBody>
+      <mesh position={[0, 1.25, 0.1]}>
+        <boxGeometry args={[3, 2.5, 0.1]} />
+        <meshStandardMaterial
+          color={isUnlocked ? '#4a8a4a' : '#8a4a4a'}
+          emissive={isUnlocked ? '#2a5a2a' : '#5a2a2a'}
+          emissiveIntensity={0.3}
+          roughness={0.8}
+        />
+      </mesh>
+      {showLockedMessage && (
+        <group position={[0, 5, 0]}>
+          <mesh>
+            <planeGeometry args={[6, 1]} />
+            <meshBasicMaterial color="#2a2a2a" transparent opacity={0.8} />
+          </mesh>
+        </group>
+      )}
     </group>
   )
 }
@@ -131,6 +194,7 @@ export default function Wilderness() {
       {paths.map((path, i) => (
         <Path key={`path-${i}`} position={path.pos} rotation={path.rot} />
       ))}
+      <TowerEntrance />
     </group>
   )
 }
