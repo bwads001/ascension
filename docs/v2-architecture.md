@@ -17,34 +17,47 @@ v1 served as a POC proving the concept works. v2 restructures the codebase into 
 ```
 src-v2/
 ├── systems/
-│   ├── CombatSystem.ts      # Range checks, damage application, cooldowns
-│   ├── MovementSystem.ts    # Pathfinding, approach targets, position updates
-│   ├── AISystem.ts          # Monster behavior, aggro, wandering
-│   ├── InteractionSystem.ts # Click handling, hover states, selection
-│   └── index.ts             # System orchestration, tick order
+│   ├── CombatSystem.ts
+│   ├── MovementSystem.ts
+│   ├── AISystem.ts
+│   ├── InteractionSystem.ts
+│   ├── NetworkSystem.ts        # Sync events, handle latency
+│   └── SceneSystem.ts          # Floor loading/unloading
 ├── engine/
-│   ├── GameLoop.ts          # Fixed tick loop, decoupled from render
-│   ├── EntityManager.ts     # Entity registry, queries, lifecycle
-│   ├── EventQueue.ts        # Intent queue, priority ordering
-│   └── TimeManager.ts       # Delta time, fixed timestep, interpolation
+│   ├── GameLoop.ts
+│   ├── EntityManager.ts
+│   ├── EventQueue.ts
+│   ├── TimeManager.ts
+│   └── SceneManager.ts         # Floor/scene lifecycle
+├── services/
+│   ├── PersistenceService.ts   # Save/load characters
+│   └── NetworkService.ts       # Room management, events
+├── scenes/
+│   ├── StartScene.tsx          # Character select/create
+│   ├── TownScene.tsx           # Safe zone, hub
+│   └── FloorScene.tsx          # Dungeon floor template
 ├── entities/
-│   ├── Player.tsx           # Rendering only, reads from stores
-│   ├── Monster.tsx          # Rendering only, reads from stores
+│   ├── Player.tsx
+│   ├── Monster.tsx
 │   └── index.ts
 ├── store/
-│   ├── worldStore.ts        # All world state: entities, positions, health
-│   ├── combatStore.ts       # Combat state: cooldowns, pending attacks
-│   └── uiStore.ts           # UI state: hover, selection, modals
+│   ├── worldStore.ts
+│   ├── combatStore.ts
+│   ├── uiStore.ts
+│   ├── sessionStore.ts         # Current session, room info
+│   └── characterStore.ts       # Saved characters
 ├── bridge/
-│   └── PhysicsBridge.ts     # Sync RigidBody <-> EntityManager
+│   └── PhysicsBridge.ts
 ├── types/
-│   ├── entities.ts          # Entity interfaces, component data
-│   ├── events.ts            # Event/intent types
-│   └── systems.ts           # System interfaces
+│   ├── entities.ts
+│   ├── events.ts
+│   ├── systems.ts
+│   ├── networking.ts           # Network types
+│   └── persistence.ts          # Save data types
 ├── utils/
-│   └── math.ts              # Distance, direction, collision helpers
-├── App.tsx                  # React root, scene setup
-└── main.tsx                 # Entry point
+│   └── math.ts
+├── App.tsx
+└── main.tsx
 ```
 
 ## Core Concepts
@@ -213,6 +226,161 @@ function Player({ id }: { id: string }) {
 }
 ```
 
+## Persistence
+
+**Yes - Character save/load is required.**
+
+### Character System
+
+- **Start Screen** - Presented on game launch
+  - Character selection from saved characters
+  - Character creation (pick class: warrior/archer/mage)
+  - Character deletion (with confirmation)
+  - "New Game" option to create additional characters
+
+### Character Data
+
+```typescript
+interface CharacterSave {
+  id: string
+  name: string
+  class: 'warrior' | 'archer' | 'mage'
+  createdAt: number
+  lastPlayedAt: number
+  stats: {
+    level: number
+    kills: number
+    highestFloor: number
+    playTimeMs: number
+  }
+  position: {
+    floor: number
+    x: number
+    z: number
+  }
+}
+
+interface SaveData {
+  version: number
+  characters: CharacterSave[]
+  settings: GameSettings
+}
+```
+
+### Persistence Layer
+
+```typescript
+interface PersistenceService {
+  load(): Promise<SaveData>
+  save(data: SaveData): Promise<void>
+  deleteCharacter(id: string): Promise<void>
+}
+```
+
+**Initial implementation**: `localStorage` with JSON serialization
+**Future**: Backend API with cloud sync
+
+### Scene Flow
+
+```
+Start Screen
+    │
+    ├── New Character → Class Selection → Spawn in Town
+    │
+    └── Select Character → Load Position → Resume
+```
+
+## Multiplayer
+
+**Yes - Up to 5 players per game session.**
+
+### Networking Architecture
+
+```typescript
+// Room/session based networking
+interface GameRoom {
+  id: string
+  hostId: string
+  players: PlayerConnection[]
+  state: RoomState
+  floor: number
+}
+
+interface PlayerConnection {
+  id: string
+  characterId: string
+  isHost: boolean
+  latency: number
+}
+```
+
+### Networked Event System
+
+Events must be serializable and authoritative:
+
+```typescript
+type NetworkedEvent =
+  | { type: 'PLAYER_JOINED'; playerId: string; character: CharacterSave }
+  | { type: 'PLAYER_LEFT'; playerId: string }
+  | { type: 'MOVE_TO'; entityId: string; target: [number, number, number]; timestamp: number }
+  | { type: 'ATTACK_ENTITY'; attackerId: string; targetId: string; timestamp: number }
+  | { type: 'ENTITY_DAMAGED'; entityId: string; amount: number; sourceId: string }
+  | { type: 'FLOOR_TRANSITION'; floor: number; players: string[] }
+```
+
+### Authority Model
+
+- **Host authority**: Host's game loop is authoritative for combat/AI
+- **Client prediction**: Movement is predicted locally, reconciled with host
+- **State sync**: Full state sync on join, delta sync during play
+
+### Scene Management (Tower Floors)
+
+Each floor is a separate scene. Transition triggers:
+
+- All living players enter tower door
+- Last player on floor leaves (cleanup)
+
+```typescript
+interface SceneManager {
+  currentFloor: number
+  loadFloor(floor: number, players: PlayerEntity[]): Promise<void>
+  unloadFloor(): void
+  getFloorConfig(floor: number): FloorConfig
+}
+
+interface FloorConfig {
+  theme: 'dungeon' | 'cave' | 'ruins' | 'boss'
+  monsterTypes: MonsterType[]
+  monsterCount: number
+  hasBoss: boolean
+  size: { width: number; depth: number }
+}
+```
+
+### Networking Service
+
+```typescript
+interface NetworkService {
+  createRoom(): Promise<GameRoom>
+  joinRoom(roomId: string): Promise<GameRoom>
+  leaveRoom(): void
+  broadcast(event: NetworkedEvent): void
+  onEvent(callback: (event: NetworkedEvent) => void): () => void
+}
+```
+
+**Initial implementation**: WebRTC peer-to-peer with host as authority
+**Future**: Dedicated server with WebSocket
+
+### Multiplayer Implications
+
+1. **Entity IDs** - Must be globally unique, include player prefix
+2. **Event timestamps** - Required for lag compensation
+3. **Deterministic AI** - Monster behavior must be deterministic or host-controlled
+4. **State interpolation** - Smooth other players' movement
+5. **Late join** - Full state snapshot for joining players
+
 ## Migration Path
 
 ### Phase 1: Foundation
@@ -224,7 +392,15 @@ function Player({ id }: { id: string }) {
 - [ ] Implement `PhysicsBridge`
 - [ ] Create entity type definitions
 
-### Phase 2: Movement
+### Phase 2: Persistence & Characters
+
+- [ ] Implement `PersistenceService` (localStorage)
+- [ ] Create `characterStore`
+- [ ] Create `StartScene` with character select/create/delete UI
+- [ ] Wire character selection → game entry
+- [ ] Verify save/load works
+
+### Phase 3: Movement
 
 - [ ] Implement `MovementSystem`
 - [ ] Create `Player` entity (render-only)
@@ -232,7 +408,7 @@ function Player({ id }: { id: string }) {
 - [ ] Wire up click-to-move through event queue
 - [ ] Verify player moves correctly
 
-### Phase 3: AI
+### Phase 4: AI
 
 - [ ] Implement `AISystem`
 - [ ] Create `Monster` entity (render-only)
@@ -240,7 +416,7 @@ function Player({ id }: { id: string }) {
 - [ ] Wire up aggro behavior
 - [ ] Verify monsters move and chase
 
-### Phase 4: Combat
+### Phase 5: Combat
 
 - [ ] Implement `CombatSystem`
 - [ ] Implement `InteractionSystem` for attack intents
@@ -249,16 +425,30 @@ function Player({ id }: { id: string }) {
 - [ ] Implement death/respawn
 - [ ] Verify combat feels responsive
 
-### Phase 5: World
+### Phase 6: World & Scenes
 
-- [ ] Port Town, Wilderness, TowerEntrance
+- [ ] Implement `SceneManager` and `SceneSystem`
+- [ ] Port Town scene
+- [ ] Port Wilderness scene
+- [ ] Create Floor scene template
+- [ ] Implement tower entry (floor transition)
 - [ ] Implement healing well interaction
-- [ ] Implement tower entry
 
-### Phase 6: Polish & Cutover
+### Phase 7: Networking (Multiplayer)
+
+- [ ] Implement `NetworkService` (WebRTC)
+- [ ] Implement `NetworkSystem`
+- [ ] Add room create/join to StartScene
+- [ ] Implement host authority for combat/AI
+- [ ] Implement client prediction for movement
+- [ ] Implement state interpolation
+- [ ] Test 2+ player connectivity
+
+### Phase 8: Polish & Cutover
 
 - [ ] Feature parity check vs v1
 - [ ] Performance profiling
+- [ ] Multiplayer stress test (5 players)
 - [ ] Move `src-v2/` → `src/`
 - [ ] Archive v1 as `src-v1-archive/`
 
@@ -283,12 +473,6 @@ describe('CombatSystem', () => {
   })
 })
 ```
-
-## Open Questions
-
-- **Persistence**: Should we plan for save/load now or later?
-- **Multiplayer**: Any networking considerations in the event queue design?
-- **Scene management**: How do we handle tower floors (scene transitions vs same scene)?
 
 ## References
 
