@@ -1,4 +1,60 @@
 import { RigidBody } from '@react-three/rapier'
+import { useRef, useState } from 'react'
+import { Mesh } from 'three'
+
+import { usePlayerStore } from '../store/playerStore'
+
+function Well({ position }: { position: [number, number, number] }) {
+  const [hovered, setHovered] = useState(false)
+  const heal = usePlayerStore((state) => state.heal)
+  const health = usePlayerStore((state) => state.health)
+  const maxHealth = usePlayerStore((state) => state.maxHealth)
+  const meshRef = useRef<Mesh>(null)
+
+  const handleClick = () => {
+    if (health < maxHealth) {
+      heal(maxHealth)
+    }
+  }
+
+  return (
+    <group position={position}>
+      <mesh
+        ref={meshRef}
+        castShadow
+        receiveShadow
+        onClick={handleClick}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      >
+        <cylinderGeometry args={[0.8, 1, 0.8, 12]} />
+        <meshStandardMaterial color={hovered ? '#7a8a7a' : '#5a6a5a'} roughness={0.9} />
+      </mesh>
+      <mesh castShadow position={[0, 0.5, 0]}>
+        <torusGeometry args={[0.6, 0.1, 8, 16]} />
+        <meshStandardMaterial
+          color={hovered ? '#c9b896' : '#a89876'}
+          metalness={0.3}
+          roughness={0.7}
+        />
+      </mesh>
+      <mesh position={[0, 0.3, 0]}>
+        <cylinderGeometry args={[0.55, 0.55, 0.2, 12]} />
+        <meshStandardMaterial color="#3a5a7a" metalness={0.1} roughness={0.3} />
+      </mesh>
+      <mesh castShadow position={[0.7, 0.8, 0]} rotation={[0, 0, 0.3]}>
+        <cylinderGeometry args={[0.04, 0.04, 1.2, 8]} />
+        <meshStandardMaterial color="#5a4a3a" roughness={0.9} />
+      </mesh>
+      {hovered && (
+        <mesh position={[0, 1.5, 0]}>
+          <cylinderGeometry args={[0.3, 0.1, 0.4, 8]} />
+          <meshStandardMaterial color="#ffffff" transparent opacity={0.3} />
+        </mesh>
+      )}
+    </group>
+  )
+}
 
 function Cottage({ position }: { position: [number, number, number] }) {
   return (
@@ -188,6 +244,7 @@ export default function Town() {
       <Cottage position={[-4, 0, -2]} />
       <Shop position={[4, 0, -3]} />
       <Tower position={[0, 0, 5]} />
+      <Well position={[-2, 0, 4]} />
 
       {fencePoints.map((start, i) => {
         const end = fencePoints[(i + 1) % numPosts]

@@ -169,6 +169,7 @@ export default function Monster({ type, position, id }: MonsterProps) {
   const attackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const playerPosition = usePlayerStore((state) => state.position)
+  const playerIsDead = usePlayerStore((state) => state.isDead)
   const takeDamage = usePlayerStore((state) => state.takeDamage)
   const monsterData = useGameStore((state) => state.monsters.get(id))
   const registerMonster = useGameStore((state) => state.registerMonster)
@@ -245,7 +246,7 @@ export default function Monster({ type, position, id }: MonsterProps) {
     let target: Vector3
     let currentSpeed = speed
 
-    if (!playerInTown && playerDistance <= AGGRO_RANGE) {
+    if (!playerInTown && !playerIsDead && playerDistance <= AGGRO_RANGE) {
       target = new Vector3(playerPosition[0], 0, playerPosition[2])
       currentSpeed = speed * 1.3
 
@@ -291,7 +292,13 @@ export default function Monster({ type, position, id }: MonsterProps) {
   if (isDead) return null
 
   return (
-    <RigidBody ref={ref} position={position} colliders={false} type="kinematicPosition" lockRotations>
+    <RigidBody
+      ref={ref}
+      position={position}
+      colliders={false}
+      type="kinematicPosition"
+      lockRotations
+    >
       {MonsterMesh}
       {monsterData && <HealthBar health={monsterData.health} maxHealth={monsterData.maxHealth} />}
     </RigidBody>

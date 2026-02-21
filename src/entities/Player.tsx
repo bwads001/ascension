@@ -147,7 +147,7 @@ interface PlayerProps {
 
 export default function Player({ playerClass = 'warrior' }: PlayerProps) {
   const ref = useRef<RapierRigidBody>(null)
-  const { position, setPosition, targetPosition } = usePlayerStore()
+  const { position, setPosition, targetPosition, isDead } = usePlayerStore()
   const { monsters, damageMonster } = useGameStore()
   const Character = CLASSES[playerClass]
   const [canAttack, setCanAttack] = useState(true)
@@ -157,7 +157,7 @@ export default function Player({ playerClass = 'warrior' }: PlayerProps) {
     const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault()
 
-      if (!canAttack || !ref.current) return
+      if (!canAttack || !ref.current || isDead) return
 
       const currentPos = ref.current.translation()
       const playerPos: [number, number, number] = [currentPos.x, currentPos.y, currentPos.z]
@@ -196,10 +196,10 @@ export default function Player({ playerClass = 'warrior' }: PlayerProps) {
 
     window.addEventListener('contextmenu', handleContextMenu)
     return () => window.removeEventListener('contextmenu', handleContextMenu)
-  }, [canAttack, monsters, damageMonster])
+  }, [canAttack, monsters, damageMonster, isDead])
 
   useFrame((_, delta) => {
-    if (!ref.current || !targetPosition) return
+    if (!ref.current || !targetPosition || isDead) return
 
     const currentPos = ref.current.translation()
     const target = new Vector3(...targetPosition)
@@ -216,6 +216,20 @@ export default function Player({ playerClass = 'warrior' }: PlayerProps) {
       setPosition([newPos.x, newPos.y, newPos.z])
     }
   })
+
+  if (isDead) {
+    return (
+      <RigidBody
+        ref={ref}
+        position={position}
+        colliders={false}
+        type="kinematicPosition"
+        lockRotations
+      >
+        <CuboidCollider args={[0.4, 1, 0.4]} position={[0, 1, 0]} />
+      </RigidBody>
+    )
+  }
 
   return (
     <RigidBody
