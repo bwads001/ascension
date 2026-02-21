@@ -4,7 +4,7 @@ import { entityManager } from '../engine/EntityManager'
 import { gameLoop } from '../engine/GameLoop'
 import { Player, Monster } from '../entities'
 import { useCharacterStore, useUIStore, useWorldStore } from '../store'
-import { movementSystem, interactionSystem, syncSystem, aiSystem } from '../systems'
+import { movementSystem, interactionSystem, syncSystem, aiSystem, combatSystem } from '../systems'
 import { PLAYER_DEFAULTS, MONSTER_DEFAULTS } from '../types'
 import type { MonsterType } from '../types'
 import { Floor, Camera } from '../world'
@@ -30,12 +30,14 @@ export default function TownScene() {
     gameLoop.registerSystem(interactionSystem)
     gameLoop.registerSystem(movementSystem)
     gameLoop.registerSystem(aiSystem)
+    gameLoop.registerSystem(combatSystem)
     gameLoop.registerSystem(syncSystem)
 
     return () => {
       gameLoop.unregisterSystem('InteractionSystem')
       gameLoop.unregisterSystem('MovementSystem')
       gameLoop.unregisterSystem('AISystem')
+      gameLoop.unregisterSystem('CombatSystem')
       gameLoop.unregisterSystem('SyncSystem')
     }
   }, [])

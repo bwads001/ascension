@@ -418,11 +418,11 @@ interface NetworkService {
 
 ### Phase 5: Combat
 
-- [ ] Implement `CombatSystem`
+- [x] Implement `CombatSystem`
 - [x] Implement `InteractionSystem` for attack intents
-- [ ] Wire up click-to-attack
-- [ ] Wire up monster attacks on player
-- [ ] Implement death/respawn
+- [x] Wire up click-to-attack
+- [x] Wire up monster attacks on player
+- [x] Implement death/respawn
 - [ ] Verify combat feels responsive
 
 ### Phase 6: World & Scenes

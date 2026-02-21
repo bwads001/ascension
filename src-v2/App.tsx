@@ -4,6 +4,7 @@ import { useEffect } from 'react'
 import { gameLoop } from './engine'
 import { StartScene, TownScene } from './scenes'
 import { useCharacterStore, useUIStore } from './store'
+import { PlayerHUD, DeathScreen } from './ui'
 
 export default function App() {
   const { loaded, load } = useCharacterStore()
@@ -39,6 +40,8 @@ export default function App() {
       >
         <TownScene />
       </Canvas>
+      <PlayerHUD />
+      <DeathScreen />
       <div style={styles.hud}>
         <p>Press ESC to return to start screen</p>
       </div>
