@@ -1,6 +1,6 @@
 import { useFrame } from '@react-three/fiber'
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier'
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState } from 'react'
 import { Vector3, Mesh } from 'three'
 
 import { useGameStore } from '../store/gameStore'
@@ -147,73 +147,56 @@ interface PlayerProps {
 
 export default function Player({ playerClass = 'warrior' }: PlayerProps) {
   const ref = useRef<RapierRigidBody>(null)
-  const { position, setPosition, targetPosition, isDead } = usePlayerStore()
+  const canAttackRef = useRef(true)
+  const { position, setPosition, targetPosition, targetMonsterId, setTargetMonsterId, isDead } =
+    usePlayerStore()
   const { monsters, damageMonster } = useGameStore()
   const Character = CLASSES[playerClass]
-  const [canAttack, setCanAttack] = useState(true)
   const [isAttacking, setIsAttacking] = useState(false)
 
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => {
-      e.preventDefault()
+  useFrame((_, delta) => {
+    if (!ref.current || isDead) return
 
-      if (!canAttack || !ref.current || isDead) return
+    const currentPos = ref.current.translation()
+    const current = new Vector3(currentPos.x, currentPos.y, currentPos.z)
 
-      const currentPos = ref.current.translation()
-      const playerPos: [number, number, number] = [currentPos.x, currentPos.y, currentPos.z]
+    if (targetPosition) {
+      const target = new Vector3(...targetPosition)
+      const direction = target.clone().sub(current)
+      const distance = direction.length()
 
-      const monstersInRange = Array.from(monsters.entries())
-        .filter(([, monster]) => {
-          if (monster.dead) return false
-          const dx = monster.position[0] - playerPos[0]
-          const dz = monster.position[2] - playerPos[2]
-          const distance = Math.sqrt(dx * dx + dz * dz)
-          return distance <= ATTACK_RANGE
-        })
-        .map(([id, monster]) => {
-          const dx = monster.position[0] - playerPos[0]
-          const dz = monster.position[2] - playerPos[2]
-          return { id, distance: Math.sqrt(dx * dx + dz * dz) }
-        })
-        // oxlint-disable-next-line unicorn/no-array-sort
-        .sort(
-          (a: { id: string; distance: number }, b: { id: string; distance: number }) =>
-            a.distance - b.distance
-        )
-
-      const nearestMonster = monstersInRange[0]
-
-      if (nearestMonster) {
-        setIsAttacking(true)
-        setTimeout(() => setIsAttacking(false), 200)
-
-        damageMonster(nearestMonster.id, ATTACK_DAMAGE)
-
-        setCanAttack(false)
-        setTimeout(() => setCanAttack(true), ATTACK_COOLDOWN)
+      if (distance > 0.1) {
+        direction.normalize()
+        const moveDistance = Math.min(SPEED * delta, distance)
+        const newPos = current.clone().add(direction.multiplyScalar(moveDistance))
+        ref.current.setTranslation({ x: newPos.x, y: newPos.y, z: newPos.z }, true)
+        setPosition([newPos.x, newPos.y, newPos.z])
       }
     }
 
-    window.addEventListener('contextmenu', handleContextMenu)
-    return () => window.removeEventListener('contextmenu', handleContextMenu)
-  }, [canAttack, monsters, damageMonster, isDead])
+    if (targetMonsterId && canAttackRef.current) {
+      const monster = monsters.get(targetMonsterId)
+      if (monster && !monster.dead) {
+        const dx = monster.position[0] - currentPos.x
+        const dz = monster.position[2] - currentPos.z
+        const distance = Math.sqrt(dx * dx + dz * dz)
 
-  useFrame((_, delta) => {
-    if (!ref.current || !targetPosition || isDead) return
+        if (distance <= ATTACK_RANGE) {
+          setIsAttacking(true)
+          setTimeout(() => setIsAttacking(false), 200)
 
-    const currentPos = ref.current.translation()
-    const target = new Vector3(...targetPosition)
-    const current = new Vector3(currentPos.x, currentPos.y, currentPos.z)
+          damageMonster(targetMonsterId, ATTACK_DAMAGE)
 
-    const direction = target.clone().sub(current)
-    const distance = direction.length()
+          canAttackRef.current = false
+          setTimeout(() => {
+            canAttackRef.current = true
+          }, ATTACK_COOLDOWN)
 
-    if (distance > 0.1) {
-      direction.normalize()
-      const moveDistance = Math.min(SPEED * delta, distance)
-      const newPos = current.clone().add(direction.multiplyScalar(moveDistance))
-      ref.current.setTranslation({ x: newPos.x, y: newPos.y, z: newPos.z }, true)
-      setPosition([newPos.x, newPos.y, newPos.z])
+          setTargetMonsterId(null)
+        }
+      } else {
+        setTargetMonsterId(null)
+      }
     }
   })
 

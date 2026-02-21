@@ -5,6 +5,7 @@ interface PlayerState {
   maxHealth: number
   position: [number, number, number]
   targetPosition: [number, number, number] | null
+  targetMonsterId: string | null
   floor: number
   kills: number
   playerClass: 'warrior' | 'archer' | 'mage'
@@ -12,6 +13,7 @@ interface PlayerState {
   setHealth: (health: number) => void
   setPosition: (position: [number, number, number]) => void
   setTargetPosition: (position: [number, number, number] | null) => void
+  setTargetMonsterId: (id: string | null) => void
   setFloor: (floor: number) => void
   setPlayerClass: (playerClass: 'warrior' | 'archer' | 'mage') => void
   addKill: () => void
@@ -25,6 +27,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   maxHealth: 100,
   position: [0, 0, 0],
   targetPosition: null,
+  targetMonsterId: null,
   floor: 0,
   kills: 0,
   playerClass: 'warrior',
@@ -32,6 +35,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
   setHealth: (health) => set({ health, isDead: health <= 0 }),
   setPosition: (position) => set({ position }),
   setTargetPosition: (targetPosition) => set({ targetPosition }),
+  setTargetMonsterId: (targetMonsterId) => set({ targetMonsterId }),
   setFloor: (floor) => set({ floor }),
   setPlayerClass: (playerClass) => set({ playerClass }),
   addKill: () => set((state) => ({ kills: state.kills + 1 })),
@@ -49,6 +53,7 @@ export const usePlayerStore = create<PlayerState>((set) => ({
       health: 100,
       position: [0, 0, 0],
       targetPosition: null,
+      targetMonsterId: null,
       isDead: false,
     }),
 }))

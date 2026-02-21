@@ -32,7 +32,6 @@ const AGGRO_RANGE = 8
 const ATTACK_RANGE = 1.5
 const ATTACK_COOLDOWN = 1000
 const ATTACK_DAMAGE = 10
-const PLAYER_ATTACK_RANGE = 3
 
 function HealthBar({ health, maxHealth }: { health: number; maxHealth: number }) {
   const percent = Math.max(0, Math.min(100, (health / maxHealth) * 100))
@@ -60,7 +59,7 @@ function HealthBar({ health, maxHealth }: { health: number; maxHealth: number })
   )
 }
 
-function Slime({ isHit, onClick }: { isHit: boolean; onClick?: () => void }) {
+function Slime({ isHit, isHovered }: { isHit: boolean; isHovered: boolean }) {
   const meshRef = useRef<Mesh>(null)
 
   useFrame((state) => {
@@ -70,12 +69,16 @@ function Slime({ isHit, onClick }: { isHit: boolean; onClick?: () => void }) {
     }
   })
 
+  const baseColor = isHit ? '#ff6666' : '#5a9a5a'
+
   return (
-    <group onClick={onClick}>
+    <group>
       <mesh ref={meshRef} castShadow position={[0, 0.4, 0]}>
         <sphereGeometry args={[0.4, 16, 12]} />
         <meshStandardMaterial
-          color={isHit ? '#ff6666' : '#5a9a5a'}
+          color={baseColor}
+          emissive={isHovered ? '#ffff00' : '#000000'}
+          emissiveIntensity={isHovered ? 0.5 : 0}
           roughness={0.3}
           metalness={0.1}
         />
@@ -92,16 +95,30 @@ function Slime({ isHit, onClick }: { isHit: boolean; onClick?: () => void }) {
   )
 }
 
-function Rat({ isHit, onClick }: { isHit: boolean; onClick?: () => void }) {
+function Rat({ isHit, isHovered }: { isHit: boolean; isHovered: boolean }) {
+  const baseColor = isHit ? '#ff6666' : '#5c4a3d'
+  const emissive = isHovered ? '#ffff00' : '#000000'
+  const emissiveIntensity = isHovered ? 0.5 : 0
+
   return (
-    <group onClick={onClick}>
+    <group>
       <mesh castShadow position={[0, 0.25, 0]}>
         <capsuleGeometry args={[0.15, 0.4, 4, 8]} />
-        <meshStandardMaterial color={isHit ? '#ff6666' : '#5c4a3d'} roughness={0.9} />
+        <meshStandardMaterial
+          color={baseColor}
+          emissive={emissive}
+          emissiveIntensity={emissiveIntensity}
+          roughness={0.9}
+        />
       </mesh>
       <mesh castShadow position={[0.3, 0.25, 0]}>
         <sphereGeometry args={[0.12, 8, 8]} />
-        <meshStandardMaterial color={isHit ? '#ff6666' : '#5c4a3d'} roughness={0.9} />
+        <meshStandardMaterial
+          color={baseColor}
+          emissive={emissive}
+          emissiveIntensity={emissiveIntensity}
+          roughness={0.9}
+        />
       </mesh>
       <mesh position={[0.35, 0.28, 0.08]}>
         <sphereGeometry args={[0.04]} />
@@ -123,16 +140,29 @@ function Rat({ isHit, onClick }: { isHit: boolean; onClick?: () => void }) {
   )
 }
 
-function Skeleton({ isHit, onClick }: { isHit: boolean; onClick?: () => void }) {
+function Skeleton({ isHit, isHovered }: { isHit: boolean; isHovered: boolean }) {
+  const baseColor = isHit ? '#ff6666' : '#e8e8e0'
+  const emissive = isHovered ? '#ffff00' : '#000000'
+  const emissiveIntensity = isHovered ? 0.5 : 0
+
+  const bodyMaterial = (
+    <meshStandardMaterial
+      color={baseColor}
+      emissive={emissive}
+      emissiveIntensity={emissiveIntensity}
+      roughness={0.8}
+    />
+  )
+
   return (
-    <group onClick={onClick}>
+    <group>
       <mesh castShadow position={[0, 0.8, 0]}>
         <boxGeometry args={[0.3, 0.8, 0.2]} />
-        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
+        {bodyMaterial}
       </mesh>
       <mesh castShadow position={[0, 1.4, 0]}>
         <boxGeometry args={[0.25, 0.25, 0.25]} />
-        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
+        {bodyMaterial}
       </mesh>
       <mesh position={[-0.06, 1.42, 0.13]}>
         <sphereGeometry args={[0.04]} />
@@ -144,19 +174,19 @@ function Skeleton({ isHit, onClick }: { isHit: boolean; onClick?: () => void }) 
       </mesh>
       <mesh castShadow position={[-0.25, 0.8, 0]} rotation={[0, 0, 0.5]}>
         <boxGeometry args={[0.08, 0.5, 0.08]} />
-        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
+        {bodyMaterial}
       </mesh>
       <mesh castShadow position={[0.25, 0.8, 0]} rotation={[0, 0, -0.5]}>
         <boxGeometry args={[0.08, 0.5, 0.08]} />
-        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
+        {bodyMaterial}
       </mesh>
       <mesh castShadow position={[-0.1, 0.2, 0]}>
         <boxGeometry args={[0.1, 0.4, 0.1]} />
-        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
+        {bodyMaterial}
       </mesh>
       <mesh castShadow position={[0.1, 0.2, 0]}>
         <boxGeometry args={[0.1, 0.4, 0.1]} />
-        <meshStandardMaterial color={isHit ? '#ff6666' : '#e8e8e0'} roughness={0.8} />
+        {bodyMaterial}
       </mesh>
     </group>
   )
@@ -168,14 +198,14 @@ export default function Monster({ type, position, id }: MonsterProps) {
   const canAttack = useRef(true)
   const lastHealth = useRef(HEALTH[type])
   const attackTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const canBeAttacked = useRef(true)
 
   const playerPosition = usePlayerStore((state) => state.position)
   const playerIsDead = usePlayerStore((state) => state.isDead)
+  const setTargetPosition = usePlayerStore((state) => state.setTargetPosition)
+  const setTargetMonsterId = usePlayerStore((state) => state.setTargetMonsterId)
   const takeDamage = usePlayerStore((state) => state.takeDamage)
   const monsterData = useGameStore((state) => state.monsters.get(id))
   const registerMonster = useGameStore((state) => state.registerMonster)
-  const damageMonster = useGameStore((state) => state.damageMonster)
 
   const speed = SPEEDS[type]
   const maxHealth = HEALTH[type]
@@ -183,25 +213,17 @@ export default function Monster({ type, position, id }: MonsterProps) {
   const health = monsterData?.health ?? maxHealth
 
   const [isHit, setIsHit] = useState(false)
+  const [isHovered, setIsHovered] = useState(false)
 
-  const handleAttack = useCallback(() => {
-    if (playerIsDead || isDead || !canBeAttacked.current) return
+  const handleClick = useCallback(() => {
+    if (playerIsDead || isDead) return
 
     const currentPos = ref.current?.translation()
     if (!currentPos) return
 
-    const dx = playerPosition[0] - currentPos.x
-    const dz = playerPosition[2] - currentPos.z
-    const distance = Math.sqrt(dx * dx + dz * dz)
-
-    if (distance <= PLAYER_ATTACK_RANGE) {
-      damageMonster(id, 25)
-      canBeAttacked.current = false
-      setTimeout(() => {
-        canBeAttacked.current = true
-      }, 500)
-    }
-  }, [playerIsDead, isDead, playerPosition, damageMonster, id])
+    setTargetPosition([currentPos.x, 0, currentPos.z])
+    setTargetMonsterId(id)
+  }, [playerIsDead, isDead, setTargetPosition, setTargetMonsterId, id])
 
   useEffect(() => {
     registerMonster({
@@ -301,16 +323,15 @@ export default function Monster({ type, position, id }: MonsterProps) {
   })
 
   const MonsterMesh = useMemo(() => {
-    const onClick = () => handleAttack()
     switch (type) {
       case 'slime':
-        return <Slime isHit={isHit} onClick={onClick} />
+        return <Slime isHit={isHit} isHovered={isHovered} />
       case 'rat':
-        return <Rat isHit={isHit} onClick={onClick} />
+        return <Rat isHit={isHit} isHovered={isHovered} />
       case 'skeleton':
-        return <Skeleton isHit={isHit} onClick={onClick} />
+        return <Skeleton isHit={isHit} isHovered={isHovered} />
     }
-  }, [type, isHit, handleAttack])
+  }, [type, isHit, isHovered])
 
   if (isDead) return null
 
@@ -322,8 +343,21 @@ export default function Monster({ type, position, id }: MonsterProps) {
       type="kinematicPosition"
       lockRotations
     >
-      {MonsterMesh}
-      {monsterData && <HealthBar health={monsterData.health} maxHealth={monsterData.maxHealth} />}
+      <group
+        onClick={handleClick}
+        onPointerOver={(e) => {
+          e.stopPropagation()
+          setIsHovered(true)
+          document.body.style.cursor = 'pointer'
+        }}
+        onPointerOut={() => {
+          setIsHovered(false)
+          document.body.style.cursor = 'default'
+        }}
+      >
+        {MonsterMesh}
+        {monsterData && <HealthBar health={monsterData.health} maxHealth={monsterData.maxHealth} />}
+      </group>
     </RigidBody>
   )
 }
