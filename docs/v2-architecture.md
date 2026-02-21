@@ -402,10 +402,10 @@ interface NetworkService {
 
 ### Phase 3: Movement
 
-- [ ] Implement `MovementSystem`
-- [ ] Create `Player` entity (render-only)
-- [ ] Create `Floor` with click handling
-- [ ] Wire up click-to-move through event queue
+- [x] Implement `MovementSystem`
+- [x] Create `Player` entity (render-only)
+- [x] Create `Floor` with click handling
+- [x] Wire up click-to-move through event queue
 - [ ] Verify player moves correctly
 
 ### Phase 4: AI
@@ -419,7 +419,7 @@ interface NetworkService {
 ### Phase 5: Combat
 
 - [ ] Implement `CombatSystem`
-- [ ] Implement `InteractionSystem` for attack intents
+- [x] Implement `InteractionSystem` for attack intents
 - [ ] Wire up click-to-attack
 - [ ] Wire up monster attacks on player
 - [ ] Implement death/respawn

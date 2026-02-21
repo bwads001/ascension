@@ -1,2 +1,3 @@
-// Entity components will be added in Phase 3
+export { default as Player } from './Player'
+
 export const ENTITIES_PLACEHOLDER = true

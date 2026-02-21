@@ -1,2 +1,3 @@
-// Systems will be added in Phase 3-5
-export const SYSTEMS_PLACEHOLDER = true
+export { MovementSystem, movementSystem } from './MovementSystem'
+export { InteractionSystem, interactionSystem } from './InteractionSystem'
+export { SyncSystem, syncSystem } from './SyncSystem'
