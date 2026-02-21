@@ -385,18 +385,18 @@ interface NetworkService {
 
 ### Phase 1: Foundation
 
-- [ ] Scaffold `src-v2/` directory structure
-- [ ] Implement `EntityManager`
-- [ ] Implement `EventQueue`
-- [ ] Implement `GameLoop` with fixed timestep
-- [ ] Implement `PhysicsBridge`
-- [ ] Create entity type definitions
+- [x] Scaffold `src-v2/` directory structure
+- [x] Implement `EntityManager`
+- [x] Implement `EventQueue`
+- [x] Implement `GameLoop` with fixed timestep
+- [x] Implement `PhysicsBridge`
+- [x] Create entity type definitions
 
 ### Phase 2: Persistence & Characters
 
-- [ ] Implement `PersistenceService` (localStorage)
-- [ ] Create `characterStore`
-- [ ] Create `StartScene` with character select/create/delete UI
+- [x] Implement `PersistenceService` (localStorage)
+- [x] Create `characterStore`
+- [x] Create `StartScene` with character select/create/delete UI
 - [ ] Wire character selection → game entry
 - [ ] Verify save/load works
 
