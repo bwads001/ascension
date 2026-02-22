@@ -1,4 +1,5 @@
 import { Canvas } from '@react-three/fiber'
+import { Physics } from '@react-three/rapier'
 import { useEffect } from 'react'
 
 import { gameLoop } from './engine'
@@ -38,7 +39,9 @@ export default function App() {
         shadows
         style={{ background: '#1a1a2e' }}
       >
-        <TownScene />
+        <Physics>
+          <TownScene />
+        </Physics>
       </Canvas>
       <PlayerHUD />
       <DeathScreen />
