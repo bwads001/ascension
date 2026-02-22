@@ -1,6 +1,7 @@
 import { entityManager } from '../engine/EntityManager'
 import type { System, GameEvent, Entity } from '../types'
 import { distanceXZ, inRange, randomPointInRadius } from '../utils/math'
+import { isInTown, TOWN_RADIUS } from '../world'
 
 const WANDER_INTERVAL = 3000
 const WANDER_RADIUS = 8
@@ -12,6 +13,13 @@ function createMoveToEvent(entityId: string, target: [number, number, number]): 
     entityId,
     target,
   }
+}
+
+function clampOutsideTown(x: number, z: number, margin: number): [number, number] {
+  if (!isInTown(x, z)) return [x, z]
+
+  const angle = Math.atan2(z, x)
+  return [Math.cos(angle) * (TOWN_RADIUS + margin), Math.sin(angle) * (TOWN_RADIUS + margin)]
 }
 
 export class AISystem implements System {
@@ -34,6 +42,12 @@ export class AISystem implements System {
 
       if (player && player.components.position) {
         const playerPos = player.components.position
+
+        if (isInTown(playerPos.x, playerPos.z)) {
+          this.updateWander(entity, currentTime, emittedEvents)
+          continue
+        }
+
         const dist = distanceXZ(position, playerPos)
 
         if (dist <= ai.aggroRange) {
@@ -100,10 +114,14 @@ export class AISystem implements System {
     }
 
     if (currentTime - ai.lastWanderTime >= WANDER_INTERVAL) {
-      const newTarget = randomPointInRadius(
+      let newTarget = randomPointInRadius(
         { x: ai.homePosition[0], y: 0, z: ai.homePosition[2] },
         WANDER_RADIUS
       )
+
+      const [clampedX, clampedZ] = clampOutsideTown(newTarget.x, newTarget.z, 3)
+      newTarget.x = clampedX
+      newTarget.z = clampedZ
 
       entityManager.updateComponent(entity.id, 'ai', {
         wanderTarget: [newTarget.x, newTarget.y, newTarget.z],

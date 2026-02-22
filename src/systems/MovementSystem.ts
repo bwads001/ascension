@@ -1,8 +1,30 @@
 import { entityManager } from '../engine/EntityManager'
 import type { System, GameEvent, Entity } from '../types'
 import { moveToward, distanceXZ, inRange } from '../utils/math'
+import { isInTown, TOWN_RADIUS } from '../world'
 
 const PLAYER_SPEED = 8
+
+function clampPositionOutsideTown(
+  currentX: number,
+  currentZ: number,
+  newX: number,
+  newZ: number,
+  margin: number
+): { x: number; z: number } {
+  if (!isInTown(newX, newZ)) return { x: newX, z: newZ }
+
+  const dx = newX - currentX
+  const dz = newZ - currentZ
+
+  if (dx === 0 && dz === 0) return { x: newX, z: newZ }
+
+  const angle = Math.atan2(newZ, newX)
+  return {
+    x: Math.cos(angle) * (TOWN_RADIUS + margin),
+    z: Math.sin(angle) * (TOWN_RADIUS + margin),
+  }
+}
 
 export class MovementSystem implements System {
   readonly name = 'MovementSystem'
@@ -89,6 +111,10 @@ export class MovementSystem implements System {
       speed = entity.components.monster.speed
     }
 
+    if (entity.components.ai?.behavior === 'aggro') {
+      speed *= 1.3
+    }
+
     if (dist <= 0.1) {
       entityManager.updateComponent(entity.id, 'velocity', {
         x: 0,
@@ -98,7 +124,13 @@ export class MovementSystem implements System {
       return
     }
 
-    const newPos = moveToward(currentPos, targetPos, speed * deltaSeconds)
+    let newPos = moveToward(currentPos, targetPos, speed * deltaSeconds)
+
+    if (entity.type === 'monster') {
+      const clamped = clampPositionOutsideTown(position.x, position.z, newPos.x, newPos.z, 1)
+      newPos.x = clamped.x
+      newPos.z = clamped.z
+    }
 
     entityManager.updateComponent(entity.id, 'position', {
       x: newPos.x,
