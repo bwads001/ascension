@@ -122,7 +122,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       lastWanderTime: 0,
       targetId: null,
     },
-    monster: { type: 'slime', speed: 1.5 },
+    monster: { type: 'slime', speed: 1 },
     render: { visible: true, highlighted: false, opacity: 1 },
   },
   rat: {
@@ -142,7 +142,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       lastWanderTime: 0,
       targetId: null,
     },
-    monster: { type: 'rat', speed: 3 },
+    monster: { type: 'rat', speed: 2 },
     render: { visible: true, highlighted: false, opacity: 1 },
   },
   skeleton: {
@@ -162,7 +162,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       lastWanderTime: 0,
       targetId: null,
     },
-    monster: { type: 'skeleton', speed: 2 },
+    monster: { type: 'skeleton', speed: 1.5 },
     render: { visible: true, highlighted: false, opacity: 1 },
   },
 }

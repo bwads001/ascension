@@ -3,7 +3,7 @@ import type { System, GameEvent, Entity } from '../types'
 import { distanceXZ, inRange, randomPointInRadius } from '../utils/math'
 import { isInTown, TOWN_RADIUS } from '../world'
 
-const WANDER_INTERVAL = 3000
+const WANDER_INTERVAL = 5000
 const WANDER_RADIUS = 8
 
 function createMoveToEvent(entityId: string, target: [number, number, number]): GameEvent {
