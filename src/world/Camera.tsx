@@ -15,7 +15,7 @@ export default function Camera() {
     const targetX = pos.x
     const targetZ = pos.z
 
-    const offset = new Vector3(0, 25, 25)
+    const offset = new Vector3(0, 25, -25)
     const targetPosition = new Vector3(targetX + offset.x, offset.y, targetZ + offset.z)
 
     camera.position.lerp(targetPosition, 0.05)
