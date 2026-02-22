@@ -1,16 +1,17 @@
+import { useFrame } from '@react-three/fiber'
 import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier'
-import { useEffect, useRef } from 'react'
-import type { JSX } from 'react'
+import { useRef, useState } from 'react'
+import { Vector3, Mesh } from 'three'
 
-import { physicsBridge } from '../bridge'
-import { useWorldStore } from '../store'
-import type { PlayerClass } from '../types'
+import { eventQueue } from '../engine/EventQueue'
+import { useWorldStore, useCharacterStore, useCombatStore } from '../store'
+import type { GameEvent } from '../types'
 
-interface PlayerProps {
-  id: string
-}
+const SPEED = 8
+const ATTACK_RANGE = 3
+const ATTACK_COOLDOWN = 500
 
-function Warrior(): JSX.Element {
+function Warrior() {
   return (
     <group>
       <mesh castShadow position={[0, 0.5, 0]}>
@@ -37,11 +38,19 @@ function Warrior(): JSX.Element {
         <boxGeometry args={[0.4, 0.5, 0.05]} />
         <meshStandardMaterial color="#8b4513" metalness={0.1} roughness={0.8} />
       </mesh>
+      <mesh position={[0, 1.2, 0.21]}>
+        <boxGeometry args={[0.08, 0.08, 0.05]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
+      <mesh position={[0.1, 1.2, 0.21]}>
+        <boxGeometry args={[0.08, 0.08, 0.05]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
     </group>
   )
 }
 
-function Archer(): JSX.Element {
+function Archer() {
   return (
     <group>
       <mesh castShadow position={[0, 0.55, 0]}>
@@ -60,6 +69,10 @@ function Archer(): JSX.Element {
         <boxGeometry args={[0.25, 0.08, 0.05]} />
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
+      <mesh position={[0, 1.15, 0.22]}>
+        <boxGeometry args={[0.05, 0.05, 0.05]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
       <mesh castShadow position={[0.35, 0.9, -0.1]} rotation={[0, 0, -0.3]}>
         <boxGeometry args={[0.05, 0.8, 0.03]} />
         <meshStandardMaterial color="#8b4513" roughness={0.9} />
@@ -68,11 +81,23 @@ function Archer(): JSX.Element {
         <boxGeometry args={[0.5, 0.03, 0.03]} />
         <meshStandardMaterial color="#f5f5dc" roughness={0.6} />
       </mesh>
+      <mesh castShadow position={[-0.35, 0.7, -0.15]} rotation={[0.3, 0, 0]}>
+        <boxGeometry args={[0.12, 0.3, 0.12]} />
+        <meshStandardMaterial color="#8b4513" roughness={0.9} />
+      </mesh>
     </group>
   )
 }
 
-function Mage(): JSX.Element {
+function Mage() {
+  const orbRef = useRef<Mesh>(null)
+
+  useFrame((state) => {
+    if (orbRef.current) {
+      orbRef.current.position.y = 1.5 + Math.sin(state.clock.elapsedTime * 2) * 0.05
+    }
+  })
+
   return (
     <group>
       <mesh castShadow position={[0, 0.5, 0]}>
@@ -87,11 +112,19 @@ function Mage(): JSX.Element {
         <coneGeometry args={[0.22, 0.25, 6]} />
         <meshStandardMaterial color="#4a3670" roughness={0.8} />
       </mesh>
+      <mesh position={[0, 1.18, 0.2]}>
+        <boxGeometry args={[0.08, 0.08, 0.05]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
+      <mesh position={[0.1, 1.18, 0.2]}>
+        <boxGeometry args={[0.08, 0.08, 0.05]} />
+        <meshStandardMaterial color="#2c3e50" />
+      </mesh>
       <mesh castShadow position={[0.5, 0.9, 0]}>
         <cylinderGeometry args={[0.03, 0.03, 1.2, 8]} />
         <meshStandardMaterial color="#8b4513" roughness={0.8} />
       </mesh>
-      <mesh castShadow position={[0.5, 1.5, 0]}>
+      <mesh ref={orbRef} castShadow position={[0.5, 1.5, 0]}>
         <sphereGeometry args={[0.12, 16, 16]} />
         <meshStandardMaterial color="#00ffff" emissive="#00ffff" emissiveIntensity={0.8} />
       </mesh>
@@ -100,29 +133,109 @@ function Mage(): JSX.Element {
   )
 }
 
-const CLASS_MODELS: Record<PlayerClass, () => JSX.Element> = {
+const CLASSES = {
   warrior: Warrior,
   archer: Archer,
   mage: Mage,
 }
 
-export default function Player({ id }: PlayerProps) {
+type PlayerClass = keyof typeof CLASSES
+
+interface PlayerProps {
+  playerClass?: PlayerClass
+}
+
+export default function Player({ playerClass = 'warrior' }: PlayerProps) {
   const ref = useRef<RapierRigidBody>(null)
-  const entity = useWorldStore((s) => s.entities[id])
+  const canAttackRef = useRef(true)
+  const Character = CLASSES[playerClass]
+  const [isAttacking, setIsAttacking] = useState(false)
+
+  const currentCharacterId = useCharacterStore((s) => s.currentCharacterId)
+  const entity = useWorldStore((s) => s.entities[currentCharacterId ?? ''])
   const position = entity?.components.position
-  const playerClass = entity?.components.player?.class ?? 'warrior'
-  const dead = entity?.components.health?.dead ?? false
+  const isDead = entity?.components.health?.dead ?? false
+  const targetMonsterId = entity?.components.combat?.targetId
+  const updateEntity = useWorldStore((s) => s.updateEntity)
+  const canAttack = useCombatStore((s) => s.canAttack)
+  const setCooldown = useCombatStore((s) => s.setCooldown)
+  const entities = useWorldStore((s) => s.entities)
 
-  useEffect(() => {
-    if (ref.current) {
-      physicsBridge.register(id, ref.current)
-      return () => physicsBridge.unregister(id)
+  useFrame((_, delta) => {
+    if (!ref.current || isDead || !position || !currentCharacterId) return
+
+    const currentPos = ref.current.translation()
+    const current = new Vector3(currentPos.x, currentPos.y, currentPos.z)
+
+    const targetPos = entity?.components.velocity
+    if (targetPos && (targetPos.x !== 0 || targetPos.z !== 0)) {
+      const target = new Vector3(targetPos.x, position.y, targetPos.z)
+      const direction = target.clone().sub(current)
+      const distance = direction.length()
+
+      if (distance > 0.1) {
+        direction.normalize()
+        const moveDistance = Math.min(SPEED * delta, distance)
+        const newPos = current.clone().add(direction.multiplyScalar(moveDistance))
+        ref.current.setTranslation({ x: newPos.x, y: newPos.y, z: newPos.z }, true)
+        updateEntity(currentCharacterId, {
+          position: { x: newPos.x, y: newPos.y, z: newPos.z, rotation: 0 },
+        })
+      }
     }
-  }, [id])
 
-  if (!position || dead) return null
+    if (targetMonsterId && canAttackRef.current) {
+      const monster = entities[targetMonsterId]
+      if (monster?.components.position && !monster.components.health?.dead) {
+        const monsterPos = monster.components.position
+        const dx = monsterPos.x - currentPos.x
+        const dz = monsterPos.z - currentPos.z
+        const distance = Math.sqrt(dx * dx + dz * dz)
 
-  const CharacterModel = CLASS_MODELS[playerClass]
+        if (distance <= ATTACK_RANGE) {
+          const now = performance.now()
+          if (canAttack(currentCharacterId, now)) {
+            setIsAttacking(true)
+            setTimeout(() => setIsAttacking(false), 200)
+
+            const event: GameEvent = {
+              type: 'ATTACK_ENTITY',
+              timestamp: now,
+              attackerId: currentCharacterId,
+              targetId: targetMonsterId,
+            }
+            eventQueue.enqueue(event)
+
+            setCooldown(currentCharacterId, now, ATTACK_COOLDOWN)
+
+            updateEntity(currentCharacterId, {
+              combat: { ...entity.components.combat!, targetId: null },
+            })
+          }
+        }
+      } else {
+        updateEntity(currentCharacterId, {
+          combat: { ...entity!.components.combat!, targetId: null },
+        })
+      }
+    }
+  })
+
+  if (!position) return null
+
+  if (isDead) {
+    return (
+      <RigidBody
+        ref={ref}
+        position={[position.x, position.y, position.z]}
+        colliders={false}
+        type="kinematicPosition"
+        lockRotations
+      >
+        <CuboidCollider args={[0.4, 1, 0.4]} position={[0, 1, 0]} />
+      </RigidBody>
+    )
+  }
 
   return (
     <RigidBody
@@ -133,7 +246,11 @@ export default function Player({ id }: PlayerProps) {
       lockRotations
     >
       <CuboidCollider args={[0.4, 1, 0.4]} position={[0, 1, 0]} />
-      <CharacterModel />
+      <group scale={isAttacking ? 1.1 : 1}>
+        <Character />
+      </group>
     </RigidBody>
   )
 }
+
+export type { PlayerClass }

@@ -154,7 +154,7 @@ export default function TownScene() {
 
       <TowerEntrance position={[0, 0, 38]} />
 
-      <Player id={currentCharacterId} />
+      <Player />
       {monsters.map((monster) => (
         <Monster key={monster.id} id={monster.id} />
       ))}

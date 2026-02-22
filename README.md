@@ -33,6 +33,7 @@ npm run dev
 Multiplayer requires the signaling server. See [signaling/README.md](signaling/README.md) for setup.
 
 Set the signaling URL:
+
 ```bash
 # .env.local
 VITE_SIGNALING_URL=ws://your-vps:8080/ws
