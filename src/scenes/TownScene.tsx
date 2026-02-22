@@ -1,12 +1,11 @@
 import { useEffect, useMemo } from 'react'
 
-import { entityManager } from '../engine/EntityManager'
 import { gameLoop } from '../engine/GameLoop'
 import { Player, Monster } from '../entities'
 import { useCharacterStore, useUIStore, useWorldStore } from '../store'
-import { movementSystem, interactionSystem, syncSystem, aiSystem, combatSystem } from '../systems'
+import { movementSystem, interactionSystem, aiSystem, combatSystem } from '../systems'
 import { PLAYER_DEFAULTS, MONSTER_DEFAULTS } from '../types'
-import type { MonsterType } from '../types'
+import type { MonsterType, Entity } from '../types'
 import { Floor, Camera, Wilderness, Town, Well, TowerEntrance } from '../world'
 
 const MONSTER_SPAWNS: Array<{ type: MonsterType; position: [number, number, number] }> = [
@@ -20,6 +19,21 @@ const MONSTER_SPAWNS: Array<{ type: MonsterType; position: [number, number, numb
   { type: 'skeleton', position: [-5, 0, 18] },
 ]
 
+function createEntity(config: {
+  type: Entity['type']
+  id: string
+  components: Entity['components']
+}): Entity {
+  const now = performance.now()
+  return {
+    id: config.id,
+    type: config.type,
+    components: config.components,
+    createdAt: now,
+    updatedAt: now,
+  }
+}
+
 export default function TownScene() {
   const currentCharacter = useCharacterStore((s) => s.getCurrentCharacter())
   const currentCharacterId = useCharacterStore((s) => s.currentCharacterId)
@@ -31,23 +45,21 @@ export default function TownScene() {
     gameLoop.registerSystem(movementSystem)
     gameLoop.registerSystem(aiSystem)
     gameLoop.registerSystem(combatSystem)
-    gameLoop.registerSystem(syncSystem)
 
     return () => {
       gameLoop.unregisterSystem('InteractionSystem')
       gameLoop.unregisterSystem('MovementSystem')
       gameLoop.unregisterSystem('AISystem')
       gameLoop.unregisterSystem('CombatSystem')
-      gameLoop.unregisterSystem('SyncSystem')
     }
   }, [])
 
   useEffect(() => {
     if (!currentCharacter) return
 
-    const existingEntity = entityManager.get(currentCharacter.id)
-    if (!existingEntity) {
-      const entity = entityManager.create({
+    const store = useWorldStore.getState()
+    if (!store.entities[currentCharacter.id]) {
+      const entity = createEntity({
         type: 'player',
         id: currentCharacter.id,
         components: {
@@ -67,18 +79,20 @@ export default function TownScene() {
         },
       })
 
-      useWorldStore.getState().setEntity({ ...entity, components: { ...entity.components } })
+      store.setEntity(entity)
     }
   }, [currentCharacter])
 
   useEffect(() => {
+    const store = useWorldStore.getState()
+
     for (const spawn of MONSTER_SPAWNS) {
       const monsterDefaults = MONSTER_DEFAULTS[spawn.type]
       const id = `monster_${spawn.type}_${spawn.position[0]}_${spawn.position[2]}`
 
-      if (entityManager.exists(id)) continue
+      if (store.entities[id]) continue
 
-      const entity = entityManager.create({
+      const entity = createEntity({
         type: 'monster',
         id,
         components: {
@@ -98,7 +112,7 @@ export default function TownScene() {
         },
       })
 
-      useWorldStore.getState().setEntity({ ...entity, components: { ...entity.components } })
+      store.setEntity(entity)
     }
   }, [])
 

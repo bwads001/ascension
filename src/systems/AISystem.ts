@@ -1,4 +1,4 @@
-import { entityManager } from '../engine/EntityManager'
+import { useWorldStore } from '../store'
 import type { System, GameEvent, Entity } from '../types'
 import { distanceXZ, inRange, randomPointInRadius } from '../utils/math'
 import { isInTown, TOWN_RADIUS } from '../world'
@@ -29,6 +29,7 @@ export class AISystem implements System {
   update(entities: Entity[], _events: GameEvent[], _deltaTime: number): GameEvent[] {
     const emittedEvents: GameEvent[] = []
     const currentTime = performance.now()
+    const store = useWorldStore.getState()
 
     for (const entity of entities) {
       if (entity.type !== 'monster') continue
@@ -44,19 +45,19 @@ export class AISystem implements System {
         const playerPos = player.components.position
 
         if (isInTown(playerPos.x, playerPos.z)) {
-          this.updateWander(entity, currentTime, emittedEvents)
+          this.updateWander(entity, currentTime, emittedEvents, store)
           continue
         }
 
         const dist = distanceXZ(position, playerPos)
 
         if (dist <= ai.aggroRange) {
-          this.updateAggro(entity, player, emittedEvents)
+          this.updateAggro(entity, player, emittedEvents, store)
           continue
         }
       }
 
-      this.updateWander(entity, currentTime, emittedEvents)
+      this.updateWander(entity, currentTime, emittedEvents, store)
     }
 
     return emittedEvents
@@ -81,13 +82,17 @@ export class AISystem implements System {
     return nearest
   }
 
-  private updateAggro(monster: Entity, player: Entity, events: GameEvent[]): void {
+  private updateAggro(
+    monster: Entity,
+    player: Entity,
+    events: GameEvent[],
+    store: ReturnType<typeof useWorldStore.getState>
+  ): void {
     const position = monster.components.position!
     const playerPos = player.components.position!
 
-    entityManager.updateComponent(monster.id, 'ai', {
-      behavior: 'aggro',
-      targetId: player.id,
+    store.updateEntity(monster.id, {
+      ai: { ...monster.components.ai!, behavior: 'aggro', targetId: player.id },
     })
 
     const combat = monster.components.combat
@@ -103,13 +108,17 @@ export class AISystem implements System {
     }
   }
 
-  private updateWander(entity: Entity, currentTime: number, events: GameEvent[]): void {
+  private updateWander(
+    entity: Entity,
+    currentTime: number,
+    events: GameEvent[],
+    store: ReturnType<typeof useWorldStore.getState>
+  ): void {
     const ai = entity.components.ai!
 
     if (ai.behavior !== 'wander') {
-      entityManager.updateComponent(entity.id, 'ai', {
-        behavior: 'wander',
-        targetId: null,
+      store.updateEntity(entity.id, {
+        ai: { ...ai, behavior: 'wander', targetId: null },
       })
     }
 
@@ -123,9 +132,12 @@ export class AISystem implements System {
       newTarget.x = clampedX
       newTarget.z = clampedZ
 
-      entityManager.updateComponent(entity.id, 'ai', {
-        wanderTarget: [newTarget.x, newTarget.y, newTarget.z],
-        lastWanderTime: currentTime,
+      store.updateEntity(entity.id, {
+        ai: {
+          ...ai,
+          wanderTarget: [newTarget.x, newTarget.y, newTarget.z],
+          lastWanderTime: currentTime,
+        },
       })
 
       events.push(createMoveToEvent(entity.id, [newTarget.x, 0, newTarget.z]))

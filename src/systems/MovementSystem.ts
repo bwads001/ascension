@@ -1,4 +1,4 @@
-import { entityManager } from '../engine/EntityManager'
+import { useWorldStore } from '../store'
 import type { System, GameEvent, Entity } from '../types'
 import { moveToward, distanceXZ, inRange } from '../utils/math'
 import { isInTown, TOWN_RADIUS } from '../world'
@@ -6,18 +6,11 @@ import { isInTown, TOWN_RADIUS } from '../world'
 const PLAYER_SPEED = 8
 
 function clampPositionOutsideTown(
-  currentX: number,
-  currentZ: number,
   newX: number,
   newZ: number,
   margin: number
 ): { x: number; z: number } {
   if (!isInTown(newX, newZ)) return { x: newX, z: newZ }
-
-  const dx = newX - currentX
-  const dz = newZ - currentZ
-
-  if (dx === 0 && dz === 0) return { x: newX, z: newZ }
 
   const angle = Math.atan2(newZ, newX)
   return {
@@ -32,17 +25,18 @@ export class MovementSystem implements System {
 
   update(entities: Entity[], events: GameEvent[], deltaTime: number): GameEvent[] {
     const deltaSeconds = deltaTime / 1000
+    const store = useWorldStore.getState()
 
     for (const event of events) {
       if (event.type === 'MOVE_TO') {
-        this.handleMoveTo(event.entityId, event.target, deltaSeconds)
+        this.handleMoveTo(event.entityId, event.target, store)
       } else if (event.type === 'APPROACH_ENTITY') {
-        this.handleApproachEntity(event.entityId, event.targetId, event.stopAtRange, deltaSeconds)
+        this.handleApproachEntity(event.entityId, event.targetId, event.stopAtRange, store)
       }
     }
 
     for (const entity of entities) {
-      this.updateMovement(entity, deltaSeconds)
+      this.updateMovement(entity, deltaSeconds, store)
     }
 
     return []
@@ -51,15 +45,13 @@ export class MovementSystem implements System {
   private handleMoveTo(
     entityId: string,
     target: [number, number, number],
-    _deltaSeconds: number
+    store: ReturnType<typeof useWorldStore.getState>
   ): void {
-    const entity = entityManager.get(entityId)
+    const entity = store.entities[entityId]
     if (!entity?.components.position) return
 
-    entityManager.updateComponent(entityId, 'velocity', {
-      x: target[0],
-      y: 0,
-      z: target[2],
+    store.updateEntity(entityId, {
+      velocity: { x: target[0], y: 0, z: target[2] },
     })
   }
 
@@ -67,10 +59,10 @@ export class MovementSystem implements System {
     entityId: string,
     targetId: string,
     stopAtRange: number,
-    _deltaSeconds: number
+    store: ReturnType<typeof useWorldStore.getState>
   ): void {
-    const entity = entityManager.get(entityId)
-    const target = entityManager.get(targetId)
+    const entity = store.entities[entityId]
+    const target = store.entities[targetId]
 
     if (!entity?.components.position || !target?.components.position) return
 
@@ -78,22 +70,22 @@ export class MovementSystem implements System {
     const targetPos = target.components.position
 
     if (inRange(currentPos, targetPos, stopAtRange)) {
-      entityManager.updateComponent(entityId, 'velocity', {
-        x: currentPos.x,
-        y: 0,
-        z: currentPos.z,
+      store.updateEntity(entityId, {
+        velocity: { x: currentPos.x, y: 0, z: currentPos.z },
       })
       return
     }
 
-    entityManager.updateComponent(entityId, 'velocity', {
-      x: targetPos.x,
-      y: 0,
-      z: targetPos.z,
+    store.updateEntity(entityId, {
+      velocity: { x: targetPos.x, y: 0, z: targetPos.z },
     })
   }
 
-  private updateMovement(entity: Entity, deltaSeconds: number): void {
+  private updateMovement(
+    entity: Entity,
+    deltaSeconds: number,
+    store: ReturnType<typeof useWorldStore.getState>
+  ): void {
     const position = entity.components.position
     const velocity = entity.components.velocity
 
@@ -116,10 +108,8 @@ export class MovementSystem implements System {
     }
 
     if (dist <= 0.1) {
-      entityManager.updateComponent(entity.id, 'velocity', {
-        x: 0,
-        y: 0,
-        z: 0,
+      store.updateEntity(entity.id, {
+        velocity: { x: 0, y: 0, z: 0 },
       })
       return
     }
@@ -127,23 +117,22 @@ export class MovementSystem implements System {
     let newPos = moveToward(currentPos, targetPos, speed * deltaSeconds)
 
     if (entity.type === 'monster') {
-      const clamped = clampPositionOutsideTown(position.x, position.z, newPos.x, newPos.z, 1)
+      const clamped = clampPositionOutsideTown(newPos.x, newPos.z, 1)
       newPos.x = clamped.x
       newPos.z = clamped.z
     }
 
-    entityManager.updateComponent(entity.id, 'position', {
-      x: newPos.x,
-      y: newPos.y,
-      z: newPos.z,
+    store.updateEntity(entity.id, {
+      position: { x: newPos.x, y: newPos.y, z: newPos.z, rotation: position.rotation },
     })
 
-    if (distanceXZ(newPos, targetPos) <= 0.1) {
-      entityManager.updateComponent(entity.id, 'velocity', {
-        x: 0,
-        y: 0,
-        z: 0,
-      })
+    const updatedEntity = store.entities[entity.id]
+    if (updatedEntity?.components.position) {
+      if (distanceXZ(updatedEntity.components.position, targetPos) <= 0.1) {
+        store.updateEntity(entity.id, {
+          velocity: { x: 0, y: 0, z: 0 },
+        })
+      }
     }
   }
 }

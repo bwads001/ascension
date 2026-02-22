@@ -1,5 +1,4 @@
-import { entityManager } from '../engine/EntityManager'
-import { useCombatStore } from '../store'
+import { useCombatStore, useWorldStore } from '../store'
 import type { System, GameEvent, Entity } from '../types'
 import { inRange } from '../utils/math'
 
@@ -42,6 +41,7 @@ export class InteractionSystem implements System {
   update(entities: Entity[], events: GameEvent[], _deltaTime: number): GameEvent[] {
     const emittedEvents: GameEvent[] = []
     const currentTime = performance.now()
+    const store = useWorldStore.getState()
 
     for (const event of events) {
       if (event.type === 'INTERACT') {
@@ -57,15 +57,19 @@ export class InteractionSystem implements System {
       if (entity.components.health?.dead) continue
 
       const targetId = entity.components.combat.targetId
-      const target = entities.find((e) => e.id === targetId)
+      const target = store.entities[targetId]
 
       if (!target?.components.position) {
-        entityManager.updateComponent(entity.id, 'combat', { targetId: null })
+        store.updateEntity(entity.id, {
+          combat: { ...entity.components.combat, targetId: null },
+        })
         continue
       }
 
       if (target.components.health?.dead) {
-        entityManager.updateComponent(entity.id, 'combat', { targetId: null })
+        store.updateEntity(entity.id, {
+          combat: { ...entity.components.combat, targetId: null },
+        })
         continue
       }
 

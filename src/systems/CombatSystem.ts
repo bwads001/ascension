@@ -1,5 +1,4 @@
-import { entityManager } from '../engine/EntityManager'
-import { useCombatStore } from '../store'
+import { useCombatStore, useWorldStore } from '../store'
 import type { System, GameEvent, Entity } from '../types'
 import { inRange } from '../utils/math'
 
@@ -103,9 +102,13 @@ export class CombatSystem implements System {
     const health = target.components.health
     const newHealth = Math.max(0, health.current - amount)
 
-    entityManager.updateComponent(targetId, 'health', {
-      current: newHealth,
-      dead: newHealth <= 0,
+    const store = useWorldStore.getState()
+    store.updateEntity(targetId, {
+      health: {
+        ...health,
+        current: newHealth,
+        dead: newHealth <= 0,
+      },
     })
 
     if (newHealth <= 0 && !health.dead) {
@@ -115,26 +118,28 @@ export class CombatSystem implements System {
   }
 
   private applyHeal(entityId: string, amount: number): void {
-    const entity = entityManager.get(entityId)
+    const store = useWorldStore.getState()
+    const entity = store.entities[entityId]
     if (!entity?.components.health) return
 
     const health = entity.components.health
     const newHealth = Math.min(health.max, health.current + amount)
 
-    entityManager.updateComponent(entityId, 'health', {
-      current: newHealth,
+    store.updateEntity(entityId, {
+      health: { ...health, current: newHealth },
     })
   }
 
-  private handleDeath(entityId: string, killedBy?: string): void {
+  private handleDeath(entityId: string, killedBy: string | undefined): void {
     if (!killedBy) return
 
-    const killer = entityManager.get(killedBy)
+    const store = useWorldStore.getState()
+    const killer = store.entities[killedBy]
     if (!killer?.components.player) return
 
     const currentKills = killer.components.player.kills
-    entityManager.updateComponent(killedBy, 'player', {
-      kills: currentKills + 1,
+    store.updateEntity(killedBy, {
+      player: { ...killer.components.player, kills: currentKills + 1 },
     })
 
     this.damageSourceMap.delete(entityId)

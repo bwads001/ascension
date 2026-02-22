@@ -22,7 +22,7 @@ export const useWorldStore = create<WorldState>((set) => ({
 
   setEntity: (entity) =>
     set((state) => ({
-      entities: { ...state.entities, [entity.id]: entity },
+      entities: { ...state.entities, [entity.id]: { ...entity } },
     })),
 
   updateEntity: (id, components) =>

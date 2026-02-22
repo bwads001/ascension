@@ -1,7 +1,7 @@
-import type { System, GameEvent } from '../types'
-import { EntityManager } from './EntityManager'
-import { EventQueue } from './EventQueue'
-import { TimeManager } from './TimeManager'
+import { useWorldStore } from '../store'
+import type { System, GameEvent, Entity } from '../types'
+import { eventQueue } from './EventQueue'
+import { timeManager } from './TimeManager'
 
 type GameLoopCallback = (tick: number, deltaTime: number) => void
 
@@ -10,12 +10,6 @@ export class GameLoop {
   private frameId: number | null = null
   private systems: System[] = []
   private onTickCallbacks: GameLoopCallback[] = []
-
-  constructor(
-    private readonly entityManager: EntityManager,
-    private readonly eventQueue: EventQueue,
-    private readonly timeManager: TimeManager
-  ) {}
 
   registerSystem(system: System): void {
     this.systems.push(system)
@@ -37,7 +31,7 @@ export class GameLoop {
     if (this.running) return
 
     this.running = true
-    this.timeManager.start()
+    timeManager.start()
     this.loop()
   }
 
@@ -57,10 +51,10 @@ export class GameLoop {
     if (!this.running) return
 
     const currentTime = performance.now()
-    this.timeManager.update(currentTime)
+    timeManager.update(currentTime)
 
-    while (this.timeManager.shouldTick()) {
-      const deltaTime = this.timeManager.consumeTick()
+    while (timeManager.shouldTick()) {
+      const deltaTime = timeManager.consumeTick()
       this.tick(deltaTime)
     }
 
@@ -68,8 +62,8 @@ export class GameLoop {
   }
 
   private tick(deltaTime: number): void {
-    const entities = this.entityManager.getAll()
-    const events = this.eventQueue.dequeueAll()
+    const entities = Object.values(useWorldStore.getState().entities) as Entity[]
+    const events = eventQueue.dequeueAll()
 
     let newEvents: GameEvent[] = []
 
@@ -78,28 +72,24 @@ export class GameLoop {
       newEvents = newEvents.concat(systemEvents)
     }
 
-    this.eventQueue.enqueueMultiple(newEvents)
+    eventQueue.enqueueMultiple(newEvents)
 
     for (const callback of this.onTickCallbacks) {
-      callback(this.timeManager.getTickCount(), deltaTime)
+      callback(timeManager.getTickCount(), deltaTime)
     }
   }
 
   pause(): void {
-    this.timeManager.pause()
+    timeManager.pause()
   }
 
   resume(): void {
-    this.timeManager.resume()
+    timeManager.resume()
   }
 
   isPaused(): boolean {
-    return this.timeManager.isPaused()
+    return timeManager.isPaused()
   }
 }
 
-import { entityManager } from './EntityManager'
-import { eventQueue } from './EventQueue'
-import { timeManager } from './TimeManager'
-
-export const gameLoop = new GameLoop(entityManager, eventQueue, timeManager)
+export const gameLoop = new GameLoop()

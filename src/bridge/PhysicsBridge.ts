@@ -1,6 +1,6 @@
 import type { RapierRigidBody } from '@react-three/rapier'
 
-import { entityManager } from '../engine/EntityManager'
+import { useWorldStore } from '../store'
 
 export class PhysicsBridge {
   private bodies: Map<string, RapierRigidBody> = new Map()
@@ -18,24 +18,28 @@ export class PhysicsBridge {
   }
 
   syncToEngine(): void {
+    const store = useWorldStore.getState()
     for (const [id, body] of this.bodies) {
-      const entity = entityManager.get(id)
+      const entity = store.entities[id]
       if (!entity?.components.position) continue
 
       const translation = body.translation()
 
-      entityManager.updateComponent(id, 'position', {
-        x: translation.x,
-        y: translation.y,
-        z: translation.z,
-        rotation: 0,
+      store.updateEntity(id, {
+        position: {
+          x: translation.x,
+          y: translation.y,
+          z: translation.z,
+          rotation: entity.components.position.rotation,
+        },
       })
     }
   }
 
   syncToPhysics(): void {
+    const store = useWorldStore.getState()
     for (const [id, body] of this.bodies) {
-      const entity = entityManager.get(id)
+      const entity = store.entities[id]
       if (!entity?.components.position) continue
 
       const pos = entity.components.position
