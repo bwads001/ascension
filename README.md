@@ -4,23 +4,32 @@ A tower-climbing ARPG built with React Three Fiber, Drei, and Rapier.
 
 ## Architecture
 
-- **v1** (`src/`) - POC with logic embedded in React components
-- **v2** (`src-v2/`) - Proper ECS-inspired architecture with decoupled systems
+- **Current** (`src/`) - ECS-inspired architecture with decoupled systems
+- **Archive** (`src-v1-archive/`) - Original POC (preserved for reference)
 
-See [docs/v2-architecture.md](docs/v2-architecture.md) for the v2 design document.
+See [docs/v2-architecture.md](docs/v2-architecture.md) for the architecture design document.
+
+## Features
+
+- Character creation with 3 classes (warrior, archer, mage)
+- Click-to-move controls
+- Town safe zone with buildings and healing well
+- Wilderness with monsters (slime, rat, skeleton)
+- Combat with cooldowns and damage
+- Death and respawn system
+- Tower entrance (requires 5 kills)
+- Persistence via localStorage
 
 ## Development
 
 ```bash
 npm install
-npm run dev        # v1 dev server
-npm run dev:v2     # v2 dev server (when available)
+npm run dev
 ```
 
 ## Scripts
 
-- `npm run dev` - Start v1 dev server
-- `npm run dev:v2` - Start v2 dev server
+- `npm run dev` - Start dev server
 - `npm run build` - Build for production
 - `npm run lint` - Run oxlint
 - `npm run lint:fix` - Run oxlint with auto-fix

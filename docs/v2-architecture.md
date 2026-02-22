@@ -446,11 +446,11 @@ interface NetworkService {
 
 ### Phase 8: Polish & Cutover
 
-- [ ] Feature parity check vs v1
+- [x] Feature parity check vs v1
 - [ ] Performance profiling
 - [ ] Multiplayer stress test (5 players)
-- [ ] Move `src-v2/` → `src/`
-- [ ] Archive v1 as `src-v1-archive/`
+- [x] Move `src-v2/` → `src/`
+- [x] Archive v1 as `src-v1-archive/`
 
 ## Testing Strategy
 

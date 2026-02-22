@@ -1,3 +1,6 @@
 export { default as Floor } from './Floor'
-export { default as Town } from './Town'
-export { default as Wilderness } from './Wilderness'
+export { default as Camera } from './Camera'
+export { default as Wilderness, isInTown, TOWN_RADIUS, FIELD_RADIUS } from './Wilderness'
+export { Cottage, Shop, Tower, Fence } from './Town'
+export { Well } from './Well'
+export { TowerEntrance } from './TowerEntrance'

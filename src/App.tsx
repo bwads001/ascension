@@ -1,56 +1,79 @@
 import { Canvas } from '@react-three/fiber'
-import { Physics } from '@react-three/rapier'
-import { PCFShadowMap } from 'three'
+import { useEffect } from 'react'
 
-import Camera from './components/Camera'
-import Lighting from './components/Lighting'
-import UI from './components/UI'
-import { Player, Monster } from './entities'
-import { Floor, Town, Wilderness } from './world'
+import { gameLoop } from './engine'
+import { StartScene, TownScene } from './scenes'
+import { useCharacterStore, useUIStore } from './store'
+import { PlayerHUD, DeathScreen } from './ui'
 
-import './App.css'
+export default function App() {
+  const { loaded, load } = useCharacterStore()
+  const showStartScreen = useUIStore((s) => s.showStartScreen)
 
-const MONSTER_SPAWNS: { type: 'slime' | 'rat' | 'skeleton'; position: [number, number, number] }[] =
-  [
-    { type: 'slime', position: [15, 0, 5] },
-    { type: 'slime', position: [-15, 0, 8] },
-    { type: 'slime', position: [10, 0, -18] },
-    { type: 'rat', position: [-12, 0, -15] },
-    { type: 'rat', position: [18, 0, -8] },
-    { type: 'skeleton', position: [-18, 0, 15] },
-    { type: 'skeleton', position: [5, 0, 20] },
-    { type: 'skeleton', position: [-8, 0, -22] },
-  ]
+  useEffect(() => {
+    load()
+  }, [load])
 
-function App() {
+  useEffect(() => {
+    gameLoop.start()
+    return () => gameLoop.stop()
+  }, [])
+
+  if (!loaded) {
+    return (
+      <div style={styles.loading}>
+        <h2>Loading...</h2>
+      </div>
+    )
+  }
+
+  if (showStartScreen) {
+    return <StartScene />
+  }
+
   return (
-    <div className="game-container">
-      <Canvas shadows={{ type: PCFShadowMap }} camera={{ position: [0, 25, 25], fov: 60 }}>
-        <color attach="background" args={['#2a3a2a']} />
-        <fog attach="fog" args={['#2a3a2a', 30, 80]} />
-
-        <Lighting />
-        <Camera />
-
-        <Physics>
-          <Floor />
-          <Town />
-          <Wilderness />
-          <Player playerClass="mage" />
-          {MONSTER_SPAWNS.map((spawn, i) => (
-            <Monster
-              key={`monster-${i}`}
-              id={`monster-${i}`}
-              type={spawn.type}
-              position={spawn.position}
-            />
-          ))}
-        </Physics>
+    <div style={styles.container}>
+      <Canvas
+        camera={{ position: [10, 15, 10], fov: 50 }}
+        shadows
+        style={{ background: '#1a1a2e' }}
+      >
+        <TownScene />
       </Canvas>
-
-      <UI />
+      <PlayerHUD />
+      <DeathScreen />
+      <div style={styles.hud}>
+        <p>Press ESC to return to start screen</p>
+      </div>
     </div>
   )
 }
 
-export default App
+const styles: Record<string, React.CSSProperties> = {
+  loading: {
+    width: '100vw',
+    height: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: '#1a1a2e',
+    color: '#fff',
+    fontFamily: 'sans-serif',
+  },
+  container: {
+    width: '100vw',
+    height: '100vh',
+    position: 'relative',
+  },
+  hud: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    color: '#fff',
+    fontFamily: 'sans-serif',
+    background: 'rgba(0,0,0,0.5)',
+    padding: 8,
+    borderRadius: 4,
+    fontSize: 12,
+  },
+}
