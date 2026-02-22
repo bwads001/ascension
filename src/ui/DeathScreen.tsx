@@ -1,4 +1,5 @@
 import { useWorldStore, useCharacterStore, useUIStore } from '../store'
+import { PLAYER_DEFAULTS } from '../types'
 
 export default function DeathScreen() {
   const currentCharacterId = useCharacterStore((s) => s.currentCharacterId)
@@ -13,8 +14,8 @@ export default function DeathScreen() {
 
     worldStore.updateEntity(currentCharacterId!, {
       health: {
-        current: 100,
-        max: 100,
+        current: PLAYER_DEFAULTS.health!.max,
+        max: PLAYER_DEFAULTS.health!.max,
         dead: false,
       },
       position: {

@@ -93,10 +93,10 @@ export interface EntityFactoryConfig {
 
 export const PLAYER_DEFAULTS: Partial<ComponentMap> = {
   position: { x: 0, y: 0, z: 0, rotation: 0 },
-  health: { current: 100, max: 100, dead: false },
+  health: { current: 150, max: 150, dead: false },
   combat: {
     attackRange: 3,
-    attackDamage: 25,
+    attackDamage: 10,
     attackCooldown: 500,
     lastAttackTime: 0,
     targetId: null,
@@ -106,7 +106,7 @@ export const PLAYER_DEFAULTS: Partial<ComponentMap> = {
 
 export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
   slime: {
-    health: { current: 25, max: 25, dead: false },
+    health: { current: 38, max: 38, dead: false },
     combat: {
       attackRange: 1.5,
       attackDamage: 10,
@@ -126,7 +126,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
     render: { visible: true, highlighted: false, opacity: 1 },
   },
   rat: {
-    health: { current: 15, max: 15, dead: false },
+    health: { current: 23, max: 23, dead: false },
     combat: {
       attackRange: 1.5,
       attackDamage: 8,
@@ -146,7 +146,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
     render: { visible: true, highlighted: false, opacity: 1 },
   },
   skeleton: {
-    health: { current: 50, max: 50, dead: false },
+    health: { current: 75, max: 75, dead: false },
     combat: {
       attackRange: 2,
       attackDamage: 15,

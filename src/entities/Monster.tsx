@@ -8,9 +8,9 @@ import { useWorldStore } from '../store'
 import type { MonsterType, GameEvent } from '../types'
 
 const HEALTH: Record<MonsterType, number> = {
-  slime: 25,
-  rat: 15,
-  skeleton: 50,
+  slime: 38,
+  rat: 23,
+  skeleton: 75,
 }
 
 function HealthBar({ health, maxHealth }: { health: number; maxHealth: number }) {
