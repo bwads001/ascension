@@ -312,10 +312,12 @@ export default function Monster({ id }: MonsterProps) {
           if (player.id) {
             const playerHealth = entities[player.id]?.components.health
             if (playerHealth && !playerHealth.dead) {
+              const newHealth = Math.max(0, playerHealth.current - ATTACK_DAMAGE)
               updateEntity(player.id, {
                 health: {
                   ...playerHealth,
-                  current: Math.max(0, playerHealth.current - ATTACK_DAMAGE),
+                  current: newHealth,
+                  dead: newHealth <= 0,
                 },
               })
             }
@@ -346,9 +348,6 @@ export default function Monster({ id }: MonsterProps) {
       }
 
       ref.current.setTranslation({ x: newPos.x, y: newPos.y, z: newPos.z }, true)
-      updateEntity(id, {
-        position: { x: newPos.x, y: newPos.y, z: newPos.z, rotation: 0 },
-      })
     }
   })
 
