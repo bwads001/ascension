@@ -47,6 +47,8 @@ export class InteractionSystem implements System {
       if (event.type === 'INTERACT') {
         const newEvent = this.handleInteract(event.entityId, event.targetId, entities)
         if (newEvent) emittedEvents.push(newEvent)
+      } else if (event.type === 'APPROACH_ENTITY') {
+        this.handleApproachEntity(event.entityId, event.targetId, store)
       }
     }
 
@@ -91,6 +93,19 @@ export class InteractionSystem implements System {
   private canAttack(entityId: string, currentTime: number): boolean {
     const combatStore = useCombatStore.getState()
     return combatStore.canAttack(entityId, currentTime)
+  }
+
+  private handleApproachEntity(
+    entityId: string,
+    targetId: string,
+    store: ReturnType<typeof useWorldStore.getState>
+  ): void {
+    const entity = store.entities[entityId]
+    if (!entity?.components.combat) return
+
+    store.updateEntity(entityId, {
+      combat: { ...entity.components.combat, targetId },
+    })
   }
 
   private handleInteract(entityId: string, targetId: string, entities: Entity[]): GameEvent | null {
