@@ -67,7 +67,7 @@ export default function TownScene() {
         },
       })
 
-      useWorldStore.getState().setEntity(entity)
+      useWorldStore.getState().setEntity({ ...entity, components: { ...entity.components } })
     }
   }, [currentCharacter])
 
@@ -98,7 +98,7 @@ export default function TownScene() {
         },
       })
 
-      useWorldStore.getState().setEntity(entity)
+      useWorldStore.getState().setEntity({ ...entity, components: { ...entity.components } })
     }
   }, [])
 
