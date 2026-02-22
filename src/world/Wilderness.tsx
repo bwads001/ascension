@@ -75,15 +75,27 @@ export function isInTown(x: number, z: number): boolean {
 
 export { TOWN_RADIUS, FIELD_RADIUS }
 
-export default function Wilderness() {
-  const grassTufts: [number, number, number][] = []
-  const rocks: { pos: [number, number, number]; scale: number }[] = []
-  const trees: [number, number, number][] = []
-  const paths: { pos: [number, number, number]; rot: number }[] = []
+function mulberry32(seed: number) {
+  return function () {
+    let t = (seed += 0x6d2b79f5)
+    t = Math.imul(t ^ (t >>> 15), t | 1)
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61)
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296
+  }
+}
 
+const WILDERNESS_SEED = 12345
+
+const grassTufts: [number, number, number][] = []
+const rocks: { pos: [number, number, number]; scale: number }[] = []
+const trees: [number, number, number][] = []
+const paths: { pos: [number, number, number]; rot: number }[] = []
+
+;(function generateGrass() {
+  let rand = mulberry32(WILDERNESS_SEED + 1)
   for (let i = 0; i < 200; i++) {
-    const angle = Math.random() * Math.PI * 2
-    const radius = TOWN_RADIUS + 2 + Math.random() * (FIELD_RADIUS - TOWN_RADIUS - 2)
+    const angle = rand() * Math.PI * 2
+    const radius = TOWN_RADIUS + 2 + rand() * (FIELD_RADIUS - TOWN_RADIUS - 2)
     const x = Math.cos(angle) * radius
     const z = Math.sin(angle) * radius
 
@@ -91,21 +103,27 @@ export default function Wilderness() {
       grassTufts.push([x, 0, z])
     }
   }
+})()
 
+;(function generateRocks() {
+  let rand = mulberry32(WILDERNESS_SEED + 2)
   for (let i = 0; i < 15; i++) {
-    const angle = Math.random() * Math.PI * 2
-    const radius = TOWN_RADIUS + 5 + Math.random() * (FIELD_RADIUS - TOWN_RADIUS - 8)
+    const angle = rand() * Math.PI * 2
+    const radius = TOWN_RADIUS + 5 + rand() * (FIELD_RADIUS - TOWN_RADIUS - 8)
     const x = Math.cos(angle) * radius
     const z = Math.sin(angle) * radius
 
     if (!isInTown(x, z)) {
-      rocks.push({ pos: [x, 0.3, z], scale: 0.5 + Math.random() * 1.5 })
+      rocks.push({ pos: [x, 0.3, z], scale: 0.5 + rand() * 1.5 })
     }
   }
+})()
 
+;(function generateTrees() {
+  let rand = mulberry32(WILDERNESS_SEED + 3)
   for (let i = 0; i < 8; i++) {
-    const angle = Math.random() * Math.PI * 2
-    const radius = TOWN_RADIUS + 8 + Math.random() * (FIELD_RADIUS - TOWN_RADIUS - 10)
+    const angle = rand() * Math.PI * 2
+    const radius = TOWN_RADIUS + 8 + rand() * (FIELD_RADIUS - TOWN_RADIUS - 10)
     const x = Math.cos(angle) * radius
     const z = Math.sin(angle) * radius
 
@@ -113,12 +131,16 @@ export default function Wilderness() {
       trees.push([x, 0, z])
     }
   }
+})()
 
+;(function generatePaths() {
   for (let i = 0; i < 5; i++) {
     const z = 14 + i * 6
     paths.push({ pos: [0, 0.01, z], rot: 0 })
   }
+})()
 
+export default function Wilderness() {
   return (
     <group>
       {grassTufts.map((pos, i) => (
