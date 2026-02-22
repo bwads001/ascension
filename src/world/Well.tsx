@@ -1,32 +1,33 @@
 import { useRef, useState } from 'react'
 import type { Mesh } from 'three'
 
+import { eventQueue } from '../engine/EventQueue'
 import { useWorldStore, useCharacterStore } from '../store'
+import type { GameEvent } from '../types'
 
 export function Well({ position }: { position: [number, number, number] }) {
   const [hovered, setHovered] = useState(false)
   const meshRef = useRef<Mesh>(null)
   const currentCharacterId = useCharacterStore((s) => s.currentCharacterId)
 
-  const handleClick = () => {
-    if (!currentCharacterId) return
-
-    const entity = useWorldStore.getState().entities[currentCharacterId]
-    if (!entity?.components.health) return
-
-    const health = entity.components.health
-    if (health.current >= health.max) return
-
-    useWorldStore.getState().updateEntity(currentCharacterId, {
-      health: { ...health, current: health.max },
-    })
-  }
-
   const entity = useWorldStore((s) => s.entities[currentCharacterId ?? ''])
   const health = entity?.components.health
   const currentHealth = health?.current ?? 0
   const maxHealth = health?.max ?? 100
   const isFull = currentHealth >= maxHealth
+
+  const handleClick = () => {
+    if (!currentCharacterId || isFull) return
+
+    const event: GameEvent = {
+      type: 'HEAL',
+      timestamp: performance.now(),
+      entityId: currentCharacterId,
+      amount: maxHealth,
+    }
+
+    eventQueue.enqueue(event)
+  }
 
   return (
     <group position={position}>

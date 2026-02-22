@@ -1,15 +1,9 @@
-import { useFrame } from '@react-three/fiber'
-import { RigidBody, CuboidCollider, RapierRigidBody } from '@react-three/rapier'
-import { useRef, useState } from 'react'
-import { Vector3, Mesh } from 'three'
+import { RigidBody, CuboidCollider } from '@react-three/rapier'
+import { useState, useRef } from 'react'
+import type { Mesh } from 'three'
 
-import { eventQueue } from '../engine/EventQueue'
-import { useWorldStore, useCharacterStore, useCombatStore } from '../store'
-import type { GameEvent } from '../types'
-
-const SPEED = 8
-const ATTACK_RANGE = 3
-const ATTACK_COOLDOWN = 500
+import { useWorldStore, useCharacterStore } from '../store'
+import type { PlayerClass } from '../types'
 
 function Warrior() {
   return (
@@ -92,12 +86,6 @@ function Archer() {
 function Mage() {
   const orbRef = useRef<Mesh>(null)
 
-  useFrame((state) => {
-    if (orbRef.current) {
-      orbRef.current.position.y = 1.5 + Math.sin(state.clock.elapsedTime * 2) * 0.05
-    }
-  })
-
   return (
     <group>
       <mesh castShadow position={[0, 0.5, 0]}>
@@ -139,94 +127,32 @@ const CLASSES = {
   mage: Mage,
 }
 
-type PlayerClass = keyof typeof CLASSES
-
 interface PlayerProps {
   playerClass?: PlayerClass
 }
 
 export default function Player({ playerClass = 'warrior' }: PlayerProps) {
-  const ref = useRef<RapierRigidBody>(null)
-  const canAttackRef = useRef(true)
-  const Character = CLASSES[playerClass]
-  const [isAttacking, setIsAttacking] = useState(false)
-
   const currentCharacterId = useCharacterStore((s) => s.currentCharacterId)
   const entity = useWorldStore((s) => s.entities[currentCharacterId ?? ''])
   const position = entity?.components.position
   const isDead = entity?.components.health?.dead ?? false
-  const targetMonsterId = entity?.components.combat?.targetId
-  const updateEntity = useWorldStore((s) => s.updateEntity)
-  const canAttack = useCombatStore((s) => s.canAttack)
-  const setCooldown = useCombatStore((s) => s.setCooldown)
-  const entities = useWorldStore((s) => s.entities)
+  const [isAttacking, setIsAttacking] = useState(false)
+  const lastAttackTime = useRef(0)
 
-  useFrame((_, delta) => {
-    if (!ref.current || isDead || !position || !currentCharacterId) return
+  const combat = entity?.components.combat
+  if (combat?.lastAttackTime && combat.lastAttackTime !== lastAttackTime.current) {
+    lastAttackTime.current = combat.lastAttackTime
+    setIsAttacking(true)
+    setTimeout(() => setIsAttacking(false), 200)
+  }
 
-    const currentPos = ref.current.translation()
-    const current = new Vector3(currentPos.x, currentPos.y, currentPos.z)
-
-    const targetPos = entity?.components.velocity
-    if (targetPos && (targetPos.x !== 0 || targetPos.z !== 0)) {
-      const target = new Vector3(targetPos.x, position.y, targetPos.z)
-      const direction = target.clone().sub(current)
-      const distance = direction.length()
-
-      if (distance > 0.1) {
-        direction.normalize()
-        const moveDistance = Math.min(SPEED * delta, distance)
-        const newPos = current.clone().add(direction.multiplyScalar(moveDistance))
-        ref.current.setTranslation({ x: newPos.x, y: newPos.y, z: newPos.z }, true)
-        updateEntity(currentCharacterId, {
-          position: { x: newPos.x, y: newPos.y, z: newPos.z, rotation: 0 },
-        })
-      }
-    }
-
-    if (targetMonsterId && canAttackRef.current) {
-      const monster = entities[targetMonsterId]
-      if (monster?.components.position && !monster.components.health?.dead) {
-        const monsterPos = monster.components.position
-        const dx = monsterPos.x - currentPos.x
-        const dz = monsterPos.z - currentPos.z
-        const distance = Math.sqrt(dx * dx + dz * dz)
-
-        if (distance <= ATTACK_RANGE) {
-          const now = performance.now()
-          if (canAttack(currentCharacterId, now)) {
-            setIsAttacking(true)
-            setTimeout(() => setIsAttacking(false), 200)
-
-            const event: GameEvent = {
-              type: 'ATTACK_ENTITY',
-              timestamp: now,
-              attackerId: currentCharacterId,
-              targetId: targetMonsterId,
-            }
-            eventQueue.enqueue(event)
-
-            setCooldown(currentCharacterId, now, ATTACK_COOLDOWN)
-
-            updateEntity(currentCharacterId, {
-              combat: { ...entity.components.combat!, targetId: null },
-            })
-          }
-        }
-      } else {
-        updateEntity(currentCharacterId, {
-          combat: { ...entity!.components.combat!, targetId: null },
-        })
-      }
-    }
-  })
+  const Character = CLASSES[playerClass]
 
   if (!position) return null
 
   if (isDead) {
     return (
       <RigidBody
-        ref={ref}
         position={[position.x, position.y, position.z]}
         colliders={false}
         type="kinematicPosition"
@@ -239,7 +165,6 @@ export default function Player({ playerClass = 'warrior' }: PlayerProps) {
 
   return (
     <RigidBody
-      ref={ref}
       position={[position.x, position.y, position.z]}
       colliders={false}
       type="kinematicPosition"

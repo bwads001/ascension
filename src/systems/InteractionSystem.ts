@@ -1,4 +1,7 @@
+import { entityManager } from '../engine/EntityManager'
+import { useCombatStore } from '../store'
 import type { System, GameEvent, Entity } from '../types'
+import { inRange } from '../utils/math'
 
 function createMoveToEvent(entityId: string, target: [number, number, number]): GameEvent {
   return {
@@ -23,12 +26,22 @@ function createApproachEntityEvent(
   }
 }
 
+function createAttackEvent(attackerId: string, targetId: string): GameEvent {
+  return {
+    type: 'ATTACK_ENTITY',
+    timestamp: performance.now(),
+    attackerId,
+    targetId,
+  }
+}
+
 export class InteractionSystem implements System {
   readonly name = 'InteractionSystem'
   readonly priority = 5
 
   update(entities: Entity[], events: GameEvent[], _deltaTime: number): GameEvent[] {
     const emittedEvents: GameEvent[] = []
+    const currentTime = performance.now()
 
     for (const event of events) {
       if (event.type === 'INTERACT') {
@@ -37,7 +50,43 @@ export class InteractionSystem implements System {
       }
     }
 
+    for (const entity of entities) {
+      if (entity.type !== 'player') continue
+      if (!entity.components.combat?.targetId) continue
+      if (!entity.components.position) continue
+      if (entity.components.health?.dead) continue
+
+      const targetId = entity.components.combat.targetId
+      const target = entities.find((e) => e.id === targetId)
+
+      if (!target?.components.position) {
+        entityManager.updateComponent(entity.id, 'combat', { targetId: null })
+        continue
+      }
+
+      if (target.components.health?.dead) {
+        entityManager.updateComponent(entity.id, 'combat', { targetId: null })
+        continue
+      }
+
+      const attackRange = entity.components.combat.attackRange
+      if (!inRange(entity.components.position, target.components.position, attackRange)) {
+        continue
+      }
+
+      if (!this.canAttack(entity.id, currentTime)) {
+        continue
+      }
+
+      emittedEvents.push(createAttackEvent(entity.id, targetId))
+    }
+
     return emittedEvents
+  }
+
+  private canAttack(entityId: string, currentTime: number): boolean {
+    const combatStore = useCombatStore.getState()
+    return combatStore.canAttack(entityId, currentTime)
   }
 
   private handleInteract(entityId: string, targetId: string, entities: Entity[]): GameEvent | null {
