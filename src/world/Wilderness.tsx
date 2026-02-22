@@ -33,14 +33,16 @@ function Rock({ position, scale = 1 }: { position: [number, number, number]; sca
 function Path({
   position,
   rotation = 0,
+  width = 2,
 }: {
   position: [number, number, number]
   rotation?: number
+  width?: number
 }) {
   return (
     <mesh receiveShadow position={position} rotation={[0, rotation, 0]}>
-      <boxGeometry args={[2, 0.02, 1]} />
-      <meshStandardMaterial color="#8b7355" roughness={0.95} />
+      <boxGeometry args={[width, 0.02, 1]} />
+      <meshStandardMaterial color="#5d4e37" roughness={0.95} />
     </mesh>
   )
 }
@@ -89,7 +91,7 @@ const WILDERNESS_SEED = 12345
 const grassTufts: [number, number, number][] = []
 const rocks: { pos: [number, number, number]; scale: number }[] = []
 const trees: [number, number, number][] = []
-const paths: { pos: [number, number, number]; rot: number }[] = []
+const paths: { pos: [number, number, number]; rot: number; width: number }[] = []
 
 ;(function generateGrass() {
   let rand = mulberry32(WILDERNESS_SEED + 1)
@@ -102,6 +104,15 @@ const paths: { pos: [number, number, number]; rot: number }[] = []
     if (!isInTown(x, z)) {
       grassTufts.push([x, 0, z])
     }
+  }
+})()
+
+;(function generateEasternFieldGrass() {
+  let rand = mulberry32(WILDERNESS_SEED + 10)
+  for (let i = 0; i < 100; i++) {
+    const x = 58 + rand() * 32
+    const z = -20 + rand() * 40
+    grassTufts.push([x, 0, z])
   }
 })()
 
@@ -119,6 +130,15 @@ const paths: { pos: [number, number, number]; rot: number }[] = []
   }
 })()
 
+;(function generateEasternFieldRocks() {
+  let rand = mulberry32(WILDERNESS_SEED + 11)
+  for (let i = 0; i < 8; i++) {
+    const x = 60 + rand() * 28
+    const z = -18 + rand() * 36
+    rocks.push({ pos: [x, 0.3, z], scale: 0.5 + rand() * 1.5 })
+  }
+})()
+
 ;(function generateTrees() {
   let rand = mulberry32(WILDERNESS_SEED + 3)
   for (let i = 0; i < 8; i++) {
@@ -133,10 +153,26 @@ const paths: { pos: [number, number, number]; rot: number }[] = []
   }
 })()
 
-;(function generatePaths() {
-  for (let i = 0; i < 5; i++) {
-    const z = 14 + i * 6
-    paths.push({ pos: [0, 0.01, z], rot: 0 })
+;(function generateEasternFieldTrees() {
+  let rand = mulberry32(WILDERNESS_SEED + 12)
+  for (let i = 0; i < 6; i++) {
+    const x = 62 + rand() * 24
+    const z = -16 + rand() * 32
+    trees.push([x, 0, z])
+  }
+})()
+
+;(function generateNorthernPath() {
+  for (let i = 0; i < 8; i++) {
+    const z = 14 + i * 4
+    paths.push({ pos: [0, 0.01, z], rot: 0, width: 2 })
+  }
+})()
+
+;(function generateEasternPath() {
+  for (let i = 0; i < 6; i++) {
+    const x = 30 + i * 4
+    paths.push({ pos: [x, 0.01, 0], rot: Math.PI / 2, width: 6 })
   }
 })()
 
@@ -153,7 +189,7 @@ export default function Wilderness() {
         <Tree key={`tree-${i}`} position={pos} />
       ))}
       {paths.map((path, i) => (
-        <Path key={`path-${i}`} position={path.pos} rotation={path.rot} />
+        <Path key={`path-${i}`} position={path.pos} rotation={path.rot} width={path.width} />
       ))}
     </group>
   )

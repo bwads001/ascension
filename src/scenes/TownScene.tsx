@@ -17,6 +17,11 @@ const MONSTER_SPAWNS: Array<{ type: MonsterType; position: [number, number, numb
   { type: 'skeleton', position: [-18, 0, 0] },
   { type: 'skeleton', position: [8, 0, 20] },
   { type: 'skeleton', position: [-5, 0, 18] },
+  { type: 'slime', position: [70, 0, 5] },
+  { type: 'slime', position: [65, 0, -10] },
+  { type: 'rat', position: [75, 0, 0] },
+  { type: 'rat', position: [68, 0, 12] },
+  { type: 'skeleton', position: [78, 0, -8] },
 ]
 
 function createEntity(config: {
