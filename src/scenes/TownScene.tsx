@@ -7,17 +7,7 @@ import { useCharacterStore, useUIStore, useWorldStore } from '../store'
 import { movementSystem, interactionSystem, syncSystem, aiSystem, combatSystem } from '../systems'
 import { PLAYER_DEFAULTS, MONSTER_DEFAULTS } from '../types'
 import type { MonsterType } from '../types'
-import {
-  Floor,
-  Camera,
-  Wilderness,
-  Cottage,
-  Shop,
-  Tower,
-  Fence,
-  Well,
-  TowerEntrance,
-} from '../world'
+import { Floor, Camera, Wilderness, Town, Well, TowerEntrance } from '../world'
 
 const MONSTER_SPAWNS: Array<{ type: MonsterType; position: [number, number, number] }> = [
   { type: 'slime', position: [15, 0, 5] },
@@ -140,17 +130,8 @@ export default function TownScene() {
       <Floor size={60} />
       <Wilderness />
 
-      <Cottage position={[-6, 0, 4]} />
-      <Shop position={[5, 0, 5]} />
-      <Tower position={[0, 0, -7]} />
-      <Well position={[7, 0, -3]} />
-
-      <Fence position={[-6, 0, 8]} rotation={0} length={6} />
-      <Fence position={[6, 0, 8]} rotation={0} length={6} />
-      <Fence position={[-10.5, 0, 2]} rotation={Math.PI / 2} length={5} />
-      <Fence position={[10.5, 0, 2]} rotation={Math.PI / 2} length={5} />
-      <Fence position={[-10.5, 0, -5]} rotation={Math.PI / 2} length={4} />
-      <Fence position={[10.5, 0, -5]} rotation={Math.PI / 2} length={4} />
+      <Town />
+      <Well position={[-2, 0, 4]} />
 
       <TowerEntrance position={[0, 0, 38]} />
 

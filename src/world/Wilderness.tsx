@@ -30,6 +30,21 @@ function Rock({ position, scale = 1 }: { position: [number, number, number]; sca
   )
 }
 
+function Path({
+  position,
+  rotation = 0,
+}: {
+  position: [number, number, number]
+  rotation?: number
+}) {
+  return (
+    <mesh receiveShadow position={position} rotation={[0, rotation, 0]}>
+      <boxGeometry args={[2, 0.02, 1]} />
+      <meshStandardMaterial color="#8b7355" roughness={0.95} />
+    </mesh>
+  )
+}
+
 function Tree({ position }: { position: [number, number, number] }) {
   return (
     <group position={position}>
@@ -64,6 +79,7 @@ export default function Wilderness() {
   const grassTufts: [number, number, number][] = []
   const rocks: { pos: [number, number, number]; scale: number }[] = []
   const trees: [number, number, number][] = []
+  const paths: { pos: [number, number, number]; rot: number }[] = []
 
   for (let i = 0; i < 200; i++) {
     const angle = Math.random() * Math.PI * 2
@@ -98,6 +114,11 @@ export default function Wilderness() {
     }
   }
 
+  for (let i = 0; i < 5; i++) {
+    const z = 14 + i * 6
+    paths.push({ pos: [0, 0.01, z], rot: 0 })
+  }
+
   return (
     <group>
       {grassTufts.map((pos, i) => (
@@ -108,6 +129,9 @@ export default function Wilderness() {
       ))}
       {trees.map((pos, i) => (
         <Tree key={`tree-${i}`} position={pos} />
+      ))}
+      {paths.map((path, i) => (
+        <Path key={`path-${i}`} position={path.pos} rotation={path.rot} />
       ))}
     </group>
   )

@@ -12,10 +12,14 @@ export default function Camera() {
     if (!entity?.components.position) return
 
     const pos = entity.components.position
-    const targetPos = new Vector3(pos.x + 10, 15, pos.z + 10)
+    const targetX = pos.x
+    const targetZ = pos.z
 
-    camera.position.lerp(targetPos, 0.05)
-    camera.lookAt(pos.x, 0, pos.z)
+    const offset = new Vector3(0, 25, 25)
+    const targetPosition = new Vector3(targetX + offset.x, offset.y, targetZ + offset.z)
+
+    camera.position.lerp(targetPosition, 0.05)
+    camera.lookAt(targetX, 0, targetZ)
   })
 
   return null
