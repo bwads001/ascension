@@ -428,11 +428,11 @@ interface NetworkService {
 ### Phase 6: World & Scenes
 
 - [ ] Implement `SceneManager` and `SceneSystem`
-- [ ] Port Town scene
-- [ ] Port Wilderness scene
+- [x] Port Town scene (buildings, fence)
+- [x] Port Wilderness scene (grass, rocks, trees)
 - [ ] Create Floor scene template
-- [ ] Implement tower entry (floor transition)
-- [ ] Implement healing well interaction
+- [x] Implement tower entry (floor transition)
+- [x] Implement healing well interaction
 
 ### Phase 7: Networking (Multiplayer)
 
