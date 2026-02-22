@@ -170,8 +170,8 @@ const paths: { pos: [number, number, number]; rot: number; width: number }[] = [
 })()
 
 ;(function generateEasternPath() {
-  for (let i = 0; i < 8; i++) {
-    const x = 28 + i * 4
+  for (let i = 0; i < 26; i++) {
+    const x = 30 + i
     paths.push({ pos: [x, 0.015, 0], rot: Math.PI / 2, width: 6 })
   }
 })()

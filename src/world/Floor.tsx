@@ -74,8 +74,8 @@ export default function Floor({ onContextMenu }: FloorProps) {
       </RigidBody>
 
       <RigidBody type="fixed" colliders="cuboid">
-        <mesh receiveShadow position={[40, -0.51, 0]} onClick={handleClick}>
-          <boxGeometry args={[20, 1, 6]} />
+        <mesh receiveShadow position={[42.5, -0.51, 0]} onClick={handleClick}>
+          <boxGeometry args={[25, 1, 6]} />
           <meshStandardMaterial color="#5d4e37" roughness={0.95} />
         </mesh>
       </RigidBody>

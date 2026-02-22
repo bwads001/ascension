@@ -74,6 +74,11 @@ export class CombatSystem implements System {
 
     this.setCooldown(attackerId, currentTime, combat.attackCooldown)
 
+    const store = useWorldStore.getState()
+    store.updateEntity(attackerId, {
+      combat: { ...combat, lastAttackTime: currentTime },
+    })
+
     return createDamageDealtEvent(attackerId, targetId, combat.attackDamage)
   }
 

@@ -42,12 +42,14 @@ function HealthBar({ health, maxHealth }: { health: number; maxHealth: number })
 function Slime({ isHit, isHovered }: { isHit: boolean; isHovered: boolean }) {
   const meshRef = useRef<Mesh>(null)
 
+  const baseColor = isHit ? '#ff6666' : '#5a9a5a'
+
   return (
     <group>
       <mesh ref={meshRef} castShadow position={[0, 0.4, 0]}>
         <sphereGeometry args={[0.4, 16, 12]} />
         <meshStandardMaterial
-          color={isHit ? '#ff6666' : '#5a9a5a'}
+          color={baseColor}
           emissive={isHovered ? '#ffff00' : '#000000'}
           emissiveIntensity={isHovered ? 0.5 : 0}
           roughness={0.3}
@@ -177,13 +179,22 @@ export default function Monster({ id }: MonsterProps) {
   const entity = useWorldStore((s) => s.entities[id])
   const [isHovered, setIsHovered] = useState(false)
   const [isHit, setIsHit] = useState(false)
+  const [isAttacking, setIsAttacking] = useState(false)
   const lastHealth = useRef<number | null>(null)
+  const lastAttackTime = useRef(0)
 
   const position = entity?.components.position
   const monsterType = entity?.components.monster?.type ?? 'slime'
   const health = entity?.components.health
   const isDead = health?.dead ?? false
   const currentHealth = health?.current ?? HEALTH[monsterType]
+
+  const combat = entity?.components.combat
+  if (combat?.lastAttackTime && combat.lastAttackTime !== lastAttackTime.current) {
+    lastAttackTime.current = combat.lastAttackTime
+    setIsAttacking(true)
+    setTimeout(() => setIsAttacking(false), 200)
+  }
 
   useEffect(() => {
     if (lastHealth.current !== null && currentHealth < lastHealth.current) {
@@ -235,7 +246,9 @@ export default function Monster({ id }: MonsterProps) {
           document.body.style.cursor = 'default'
         }}
       >
-        <MonsterModel isHit={isHit} isHovered={isHovered} />
+        <group scale={isAttacking ? 1.2 : 1}>
+          <MonsterModel isHit={isHit} isHovered={isHovered} />
+        </group>
         {health && <HealthBar health={currentHealth} maxHealth={HEALTH[monsterType]} />}
       </group>
     </RigidBody>
