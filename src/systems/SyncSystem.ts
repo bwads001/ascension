@@ -11,7 +11,10 @@ export class SyncSystem implements System {
     for (const entity of entities) {
       const existingEntity = worldStore.entities[entity.id]
       if (!existingEntity || existingEntity.updatedAt !== entity.updatedAt) {
-        worldStore.setEntity(entity)
+        worldStore.setEntity({
+          ...entity,
+          components: { ...entity.components },
+        })
       }
     }
 
