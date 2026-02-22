@@ -1,0 +1,24 @@
+[Unit]
+Description=Ascension Signaling Server
+After=network.target
+
+[Service]
+Type=simple
+User=ascension
+Group=ascension
+WorkingDirectory=/opt/ascension-signaling
+ExecStart=/opt/ascension-signaling/signaling
+Restart=on-failure
+RestartSec=5
+
+# Environment
+Environment=PORT=8080
+
+# Security
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadOnlyPaths=/
+
+[Install]
+WantedBy=multi-user.target

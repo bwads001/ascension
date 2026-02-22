@@ -1,15 +1,24 @@
 import { useState } from 'react'
 
-import { useCharacterStore, useUIStore } from '../store'
+import { networkService } from '../services/NetworkService'
+import { useCharacterStore, useUIStore, useSessionStore } from '../store'
 import type { PlayerClass } from '../types'
 
 export default function StartScene() {
   const { characters, createCharacter, selectCharacter, deleteCharacter } = useCharacterStore()
   const setShowStartScreen = useUIStore((s) => s.setShowStartScreen)
+  const setRoom = useSessionStore((s) => s.setRoom)
+
   const [showCreate, setShowCreate] = useState(false)
   const [newName, setNewName] = useState('')
   const [newClass, setNewClass] = useState<PlayerClass>('warrior')
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+
+  const [showMultiplayer, setShowMultiplayer] = useState(false)
+  const [multiplayerName, setMultiplayerName] = useState('')
+  const [roomIdInput, setRoomIdInput] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   const handleCreate = () => {
     if (!newName.trim()) return
@@ -28,6 +37,47 @@ export default function StartScene() {
     setDeleteConfirm(null)
   }
 
+  const handleCreateRoom = async () => {
+    if (!multiplayerName.trim()) {
+      setError('Enter a name')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const room = await networkService.createRoom(multiplayerName.trim())
+      setRoom(room)
+      setShowStartScreen(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to create room')
+    }
+    setLoading(false)
+  }
+
+  const handleJoinRoom = async () => {
+    if (!multiplayerName.trim()) {
+      setError('Enter a name')
+      return
+    }
+    if (!roomIdInput.trim()) {
+      setError('Enter a room code')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      const room = await networkService.joinRoom(
+        roomIdInput.trim().toUpperCase(),
+        multiplayerName.trim()
+      )
+      setRoom(room)
+      setShowStartScreen(false)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to join room')
+    }
+    setLoading(false)
+  }
+
   const classIcons: Record<PlayerClass, string> = {
     warrior: '⚔️',
     archer: '🏹',
@@ -39,46 +89,106 @@ export default function StartScene() {
       <h1 style={styles.title}>Ascension</h1>
       <h2 style={styles.subtitle}>The Lost Archives</h2>
 
-      {!showCreate && (
-        <div style={styles.characterList}>
-          {characters.length === 0 ? (
-            <p style={styles.emptyText}>No characters yet. Create one to begin!</p>
-          ) : (
-            characters.map((char) => (
-              <div key={char.id} style={styles.characterCard}>
-                <div style={styles.characterIcon}>{classIcons[char.class]}</div>
-                <div style={styles.characterInfo}>
-                  <div style={styles.characterName}>{char.name}</div>
-                  <div style={styles.characterClass}>
-                    {char.class} · Level {char.stats.level} · Floor {char.stats.highestFloor}
+      {showMultiplayer ? (
+        <div style={styles.multiplayerPanel}>
+          <h3 style={styles.panelTitle}>Multiplayer</h3>
+          <input
+            style={styles.input}
+            type="text"
+            placeholder="Your name"
+            value={multiplayerName}
+            onChange={(e) => setMultiplayerName(e.target.value)}
+            maxLength={20}
+          />
+          <div style={styles.roomActions}>
+            <button
+              style={{ ...styles.button, ...styles.createButton }}
+              onClick={handleCreateRoom}
+              disabled={loading}
+            >
+              Create Room
+            </button>
+            <div style={styles.joinRow}>
+              <input
+                style={{ ...styles.input, ...styles.roomInput }}
+                type="text"
+                placeholder="Room code"
+                value={roomIdInput}
+                onChange={(e) => setRoomIdInput(e.target.value.toUpperCase())}
+                maxLength={6}
+              />
+              <button
+                style={{ ...styles.button, ...styles.joinButton }}
+                onClick={handleJoinRoom}
+                disabled={loading}
+              >
+                Join
+              </button>
+            </div>
+          </div>
+          {error && <p style={styles.error}>{error}</p>}
+          <button
+            style={styles.backButton}
+            onClick={() => {
+              setShowMultiplayer(false)
+              setError(null)
+            }}
+          >
+            Back
+          </button>
+        </div>
+      ) : !showCreate ? (
+        <>
+          <div style={styles.characterList}>
+            {characters.length === 0 ? (
+              <p style={styles.emptyText}>No characters yet. Create one to begin!</p>
+            ) : (
+              characters.map((char) => (
+                <div key={char.id} style={styles.characterCard}>
+                  <div style={styles.characterIcon}>{classIcons[char.class]}</div>
+                  <div style={styles.characterInfo}>
+                    <div style={styles.characterName}>{char.name}</div>
+                    <div style={styles.characterClass}>
+                      {char.class} · Level {char.stats.level} · Floor {char.stats.highestFloor}
+                    </div>
+                  </div>
+                  <div style={styles.characterActions}>
+                    <button style={styles.playButton} onClick={() => handleSelect(char.id)}>
+                      Play
+                    </button>
+                    {deleteConfirm === char.id ? (
+                      <>
+                        <button style={styles.confirmButton} onClick={() => handleDelete(char.id)}>
+                          Confirm
+                        </button>
+                        <button style={styles.cancelButton} onClick={() => setDeleteConfirm(null)}>
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <button style={styles.deleteButton} onClick={() => setDeleteConfirm(char.id)}>
+                        Delete
+                      </button>
+                    )}
                   </div>
                 </div>
-                <div style={styles.characterActions}>
-                  <button style={styles.playButton} onClick={() => handleSelect(char.id)}>
-                    Play
-                  </button>
-                  {deleteConfirm === char.id ? (
-                    <>
-                      <button style={styles.confirmButton} onClick={() => handleDelete(char.id)}>
-                        Confirm
-                      </button>
-                      <button style={styles.cancelButton} onClick={() => setDeleteConfirm(null)}>
-                        Cancel
-                      </button>
-                    </>
-                  ) : (
-                    <button style={styles.deleteButton} onClick={() => setDeleteConfirm(char.id)}>
-                      Delete
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      )}
+              ))
+            )}
+          </div>
 
-      {showCreate && (
+          <div style={styles.buttonRow}>
+            <button style={styles.newButton} onClick={() => setShowCreate(true)}>
+              New Character
+            </button>
+            <button
+              style={{ ...styles.newButton, ...styles.multiButton }}
+              onClick={() => setShowMultiplayer(true)}
+            >
+              Multiplayer
+            </button>
+          </div>
+        </>
+      ) : (
         <div style={styles.createForm}>
           <input
             style={styles.input}
@@ -113,12 +223,6 @@ export default function StartScene() {
             </button>
           </div>
         </div>
-      )}
-
-      {!showCreate && (
-        <button style={styles.newButton} onClick={() => setShowCreate(true)}>
-          New Character
-        </button>
       )}
     </div>
   )
@@ -281,7 +385,6 @@ const styles: Record<string, React.CSSProperties> = {
     fontWeight: 600,
   },
   newButton: {
-    marginTop: 24,
     padding: '16px 32px',
     background: 'transparent',
     border: '2px solid rgba(255,255,255,0.3)',
@@ -289,5 +392,68 @@ const styles: Record<string, React.CSSProperties> = {
     color: '#fff',
     cursor: 'pointer',
     fontSize: 16,
+  },
+  buttonRow: {
+    display: 'flex',
+    gap: 16,
+    marginTop: 24,
+  },
+  multiButton: {
+    borderColor: '#4a6a8a',
+    color: '#6aa4ea',
+  },
+  multiplayerPanel: {
+    width: 400,
+    maxWidth: '90vw',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 16,
+  },
+  panelTitle: {
+    textAlign: 'center',
+    fontSize: 24,
+    marginBottom: 8,
+  },
+  roomActions: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 12,
+  },
+  joinRow: {
+    display: 'flex',
+    gap: 12,
+  },
+  roomInput: {
+    flex: 1,
+    textAlign: 'center',
+    fontSize: 20,
+    letterSpacing: 4,
+  },
+  joinButton: {
+    padding: '0 24px',
+    background: '#4a6a8a',
+  },
+  button: {
+    padding: 16,
+    background: '#4a8a4a',
+    border: 'none',
+    borderRadius: 8,
+    color: '#fff',
+    cursor: 'pointer',
+    fontSize: 16,
+    fontWeight: 600,
+  },
+  error: {
+    color: '#ff6666',
+    textAlign: 'center',
+    margin: 0,
+  },
+  backButton: {
+    padding: 12,
+    background: 'transparent',
+    border: '1px solid rgba(255,255,255,0.3)',
+    borderRadius: 8,
+    color: '#fff',
+    cursor: 'pointer',
   },
 }

@@ -436,9 +436,10 @@ interface NetworkService {
 
 ### Phase 7: Networking (Multiplayer)
 
-- [x] Implement `NetworkService` (WebRTC stub - needs signaling server)
+- [x] Implement `NetworkService` (WebSocket + WebRTC)
 - [x] Implement `NetworkSystem`
-- [ ] Add room create/join to StartScene
+- [x] Add room create/join to StartScene
+- [x] Go signaling server (`signaling/`)
 - [ ] Implement host authority for combat/AI
 - [ ] Implement client prediction for movement
 - [ ] Implement state interpolation

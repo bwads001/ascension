@@ -19,12 +19,23 @@ See [docs/v2-architecture.md](docs/v2-architecture.md) for the architecture desi
 - Death and respawn system
 - Tower entrance (requires 5 kills)
 - Persistence via localStorage
+- Multiplayer support (up to 5 players)
 
 ## Development
 
 ```bash
 npm install
 npm run dev
+```
+
+### Multiplayer
+
+Multiplayer requires the signaling server. See [signaling/README.md](signaling/README.md) for setup.
+
+Set the signaling URL:
+```bash
+# .env.local
+VITE_SIGNALING_URL=ws://your-vps:8080/ws
 ```
 
 ## Scripts
