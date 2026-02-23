@@ -206,6 +206,8 @@ export default function Monster({ id }: MonsterProps) {
   }, [currentHealth])
 
   const handleClick = () => {
+    if (!position) return
+
     const state = useWorldStore.getState()
     const playerEntries = Object.values(state.entities).filter((e) => e.type === 'player')
     if (playerEntries.length === 0) return
@@ -214,11 +216,10 @@ export default function Monster({ id }: MonsterProps) {
     if (player.components.health?.dead) return
 
     const event: GameEvent = {
-      type: 'APPROACH_ENTITY',
+      type: 'MOVE_TO',
       timestamp: performance.now(),
       entityId: player.id,
-      targetId: id,
-      stopAtRange: 3,
+      target: [position.x, 0, position.z],
     }
     eventQueue.enqueue(event)
   }

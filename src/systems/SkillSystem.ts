@@ -1,7 +1,7 @@
 import { useDamageNumberStore, useWorldStore } from '../store'
 import type { System, GameEvent, Entity } from '../types'
 import { SKILLS } from '../types/skills'
-import { inRange, distanceXZ } from '../utils/math'
+import { distanceXZ, inRange } from '../utils/math'
 
 export class SkillSystem implements System {
   readonly name = 'SkillSystem'

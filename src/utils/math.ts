@@ -133,3 +133,24 @@ export function randomPointInRadius(center: Vec3, radius: number): Vec3 {
     z: center.z + Math.sin(angle) * r,
   }
 }
+
+export function getAngle(from: Vec3, to: Vec3): number {
+  return Math.atan2(to.z - from.z, to.x - from.x)
+}
+
+export function angleDifference(angle1: number, angle2: number): number {
+  let diff = angle2 - angle1
+  while (diff > Math.PI) diff -= Math.PI * 2
+  while (diff < -Math.PI) diff += Math.PI * 2
+  return Math.abs(diff)
+}
+
+export function isInFrontCone(
+  observerPos: Vec3,
+  observerRotation: number,
+  targetPos: Vec3,
+  coneAngle: number
+): boolean {
+  const angleToTarget = getAngle(observerPos, targetPos)
+  return angleDifference(observerRotation, angleToTarget) <= coneAngle / 2
+}

@@ -4,6 +4,7 @@ import { eventQueue } from '../engine/EventQueue'
 import { useCharacterStore, useSkillStore, useWorldStore } from '../store'
 import type { GameEvent } from '../types'
 import { SKILLS, getSkillBar } from '../types/skills'
+import { findTargetInRange } from '../utils/targeting'
 
 function SkillSlot({
   skillId,
@@ -134,27 +135,27 @@ export default function SkillBar() {
           targetId: currentCharacterId,
         }
         eventQueue.enqueue(event)
-      } else {
-        const targetId = player.components.combat?.targetId
-        if (targetId) {
+      } else if (skill.targetType === 'enemy') {
+        const target = findTargetInRange(player, Object.values(entities), skill.range)
+        if (target) {
           const event: GameEvent = {
             type: 'USE_SKILL',
             timestamp: currentTime,
             entityId: currentCharacterId,
             skillId,
-            targetId,
-          }
-          eventQueue.enqueue(event)
-        } else if (skill.targetType === 'area') {
-          const event: GameEvent = {
-            type: 'USE_SKILL',
-            timestamp: currentTime,
-            entityId: currentCharacterId,
-            skillId,
-            targetId: currentCharacterId,
+            targetId: target.id,
           }
           eventQueue.enqueue(event)
         }
+      } else if (skill.targetType === 'area') {
+        const event: GameEvent = {
+          type: 'USE_SKILL',
+          timestamp: currentTime,
+          entityId: currentCharacterId,
+          skillId,
+          targetId: currentCharacterId,
+        }
+        eventQueue.enqueue(event)
       }
     },
     [currentCharacterId, entities, getCooldownRemaining, setActiveSkill, useSkill]

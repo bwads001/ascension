@@ -1,6 +1,6 @@
 import { useWorldStore } from '../store'
 import type { System, GameEvent, Entity, RoomBounds } from '../types'
-import { moveToward, distanceXZ, inRange } from '../utils/math'
+import { moveToward, distanceXZ, inRange, getAngle } from '../utils/math'
 import { isInTown, TOWN_RADIUS } from '../world'
 
 const PLAYER_SPEED = 8
@@ -168,6 +168,7 @@ export class MovementSystem implements System {
     }
 
     let newPos = moveToward(currentPos, targetPos, speed * deltaSeconds)
+    const newRotation = getAngle(currentPos, targetPos)
 
     if (entity.type === 'monster') {
       const clamped = clampPositionOutsideTown(newPos.x, newPos.z, 1)
@@ -194,7 +195,7 @@ export class MovementSystem implements System {
     }
 
     store.updateEntity(entity.id, {
-      position: { x: newPos.x, y: newPos.y, z: newPos.z, rotation: position.rotation },
+      position: { x: newPos.x, y: newPos.y, z: newPos.z, rotation: newRotation },
     })
 
     const updatedEntity = store.entities[entity.id]
