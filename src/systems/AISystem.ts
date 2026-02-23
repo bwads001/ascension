@@ -5,6 +5,7 @@ import { isInTown, TOWN_RADIUS } from '../world'
 
 const WANDER_INTERVAL = 5000
 const WANDER_RADIUS = 8
+const LEASH_DISTANCE = 20
 
 function createMoveToEvent(entityId: string, target: [number, number, number]): GameEvent {
   return {
@@ -91,9 +92,24 @@ export class AISystem implements System {
   ): void {
     const position = monster.components.position!
     const playerPos = player.components.position!
+    const ai = monster.components.ai!
+
+    const distFromHome = distanceXZ(position, {
+      x: ai.homePosition[0],
+      y: 0,
+      z: ai.homePosition[2],
+    })
+
+    if (distFromHome > LEASH_DISTANCE) {
+      store.updateEntity(monster.id, {
+        ai: { ...ai, behavior: 'wander', targetId: null },
+      })
+      events.push(createMoveToEvent(monster.id, [ai.homePosition[0], 0, ai.homePosition[2]]))
+      return
+    }
 
     store.updateEntity(monster.id, {
-      ai: { ...monster.components.ai!, behavior: 'aggro', targetId: player.id },
+      ai: { ...ai, behavior: 'aggro', targetId: player.id },
     })
 
     const combat = monster.components.combat

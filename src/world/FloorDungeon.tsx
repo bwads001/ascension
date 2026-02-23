@@ -162,7 +162,7 @@ function Torch({ position }: { position: [number, number, number] }) {
 
 function generateDungeon(floor: number): RoomConfig[] {
   const rooms: RoomConfig[] = []
-  const numRooms = 3 + Math.floor(floor / 2)
+  const numRooms = 5 + floor * 2
   const minSize = 14
   const maxSize = 26
 
