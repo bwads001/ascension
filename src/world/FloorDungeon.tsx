@@ -225,7 +225,7 @@ function Room({ config, connections }: { config: RoomConfig; connections: RoomCo
       <DungeonFloor width={width} depth={depth} />
 
       {connections.north ? (
-        <WallDepthWithDoorway
+        <WallWithDoorway
           position={[0, wallHeight / 2, -depth / 2]}
           width={width}
           height={wallHeight}
@@ -241,7 +241,7 @@ function Room({ config, connections }: { config: RoomConfig; connections: RoomCo
       )}
 
       {connections.south ? (
-        <WallDepthWithDoorway
+        <WallWithDoorway
           position={[0, wallHeight / 2, depth / 2]}
           width={width}
           height={wallHeight}
@@ -257,7 +257,7 @@ function Room({ config, connections }: { config: RoomConfig; connections: RoomCo
       )}
 
       {connections.west ? (
-        <WallWithDoorway
+        <WallDepthWithDoorway
           position={[-width / 2, wallHeight / 2, 0]}
           width={wallThickness}
           height={wallHeight}
@@ -273,7 +273,7 @@ function Room({ config, connections }: { config: RoomConfig; connections: RoomCo
       )}
 
       {connections.east ? (
-        <WallWithDoorway
+        <WallDepthWithDoorway
           position={[width / 2, wallHeight / 2, 0]}
           width={wallThickness}
           height={wallHeight}
