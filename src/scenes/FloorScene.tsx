@@ -267,8 +267,8 @@ export default function FloorScene() {
   return (
     <>
       <Camera />
-      <ambientLight intensity={0.6} />
-      <pointLight position={[0, 10, 0]} intensity={1.5} castShadow distance={50} />
+      <ambientLight intensity={0.8} />
+      <pointLight position={[0, 10, 0]} intensity={2} castShadow distance={50} />
 
       <FloorDungeon rooms={rooms} onExit={handleExit} />
 

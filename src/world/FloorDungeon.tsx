@@ -144,7 +144,13 @@ function DungeonFloor({ width, depth }: { width: number; depth: number }) {
   )
 }
 
-function Torch({ position }: { position: [number, number, number] }) {
+function Torch({
+  position,
+  castShadow = false,
+}: {
+  position: [number, number, number]
+  castShadow?: boolean
+}) {
   return (
     <group position={position}>
       <mesh castShadow>
@@ -152,10 +158,16 @@ function Torch({ position }: { position: [number, number, number] }) {
         <meshStandardMaterial color="#4a3a2a" roughness={0.9} />
       </mesh>
       <mesh position={[0, 0.3, 0]}>
-        <sphereGeometry args={[0.08, 8, 8]} />
-        <meshStandardMaterial color="#ff6600" emissive="#ff4400" emissiveIntensity={3} />
+        <sphereGeometry args={[0.1, 8, 8]} />
+        <meshStandardMaterial color="#ff6600" emissive="#ff4400" emissiveIntensity={4} />
       </mesh>
-      <pointLight position={[0, 0.5, 0]} intensity={8} distance={20} color="#ffaa55" castShadow />
+      <pointLight
+        position={[0, 0.5, 0]}
+        intensity={15}
+        distance={25}
+        color="#ffaa55"
+        castShadow={castShadow}
+      />
     </group>
   )
 }
@@ -205,13 +217,7 @@ function Room({ config, connections }: { config: RoomConfig; connections: RoomCo
 
   const torchPositions: [number, number, number][] = [
     [x - width / 2 + 2, 2.5, z - depth / 2 + 2],
-    [x + width / 2 - 2, 2.5, z - depth / 2 + 2],
-    [x - width / 2 + 2, 2.5, z + depth / 2 - 2],
     [x + width / 2 - 2, 2.5, z + depth / 2 - 2],
-    [x - width / 2 + 2, 2.5, z],
-    [x + width / 2 - 2, 2.5, z],
-    [x, 2.5, z - depth / 2 + 2],
-    [x, 2.5, z + depth / 2 - 2],
   ]
 
   return (
@@ -283,7 +289,7 @@ function Room({ config, connections }: { config: RoomConfig; connections: RoomCo
       )}
 
       {torchPositions.map((pos, i) => (
-        <Torch key={i} position={pos} />
+        <Torch key={i} position={pos} castShadow={i === 0} />
       ))}
     </group>
   )
