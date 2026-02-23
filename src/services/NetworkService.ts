@@ -196,26 +196,26 @@ export class NetworkService {
     return new Promise((resolve, reject) => {
       this.ws = new WebSocket(SIGNALING_URL)
 
-      this.ws.onopen = () => {
+      this.ws.addEventListener('open', () => {
         this.reconnectAttempts = 0
         resolve()
-      }
+      })
 
-      this.ws.onerror = () => {
+      this.ws.addEventListener('error', () => {
         reject(new Error('Failed to connect to signaling server'))
-      }
+      })
 
-      this.ws.onclose = () => {
+      this.ws.addEventListener('close', () => {
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
           this.reconnectAttempts++
           setTimeout(() => this.connect(), 1000 * this.reconnectAttempts)
         }
-      }
+      })
 
-      this.ws.onmessage = (event) => {
+      this.ws.addEventListener('message', (event) => {
         const msg = JSON.parse(event.data) as SignalingMessage
         this.handleSignalingMessage(msg)
-      }
+      })
     })
   }
 
@@ -294,7 +294,7 @@ export class NetworkService {
     const pc = new RTCPeerConnection({ iceServers: this.iceServers })
     this.peerConnections.set(playerId, pc)
 
-    pc.onicecandidate = (event) => {
+    pc.addEventListener('icecandidate', (event) => {
       if (event.candidate) {
         this.send({
           type: 'ice_candidate',
@@ -302,7 +302,7 @@ export class NetworkService {
           payload: event.candidate.toJSON(),
         })
       }
-    }
+    })
 
     if (isInitiator) {
       const channel = pc.createDataChannel('game')
@@ -312,9 +312,9 @@ export class NetworkService {
         this.send({ type: 'offer', playerId, payload: offer })
       })
     } else {
-      pc.ondatachannel = (event) => {
+      pc.addEventListener('datachannel', (event) => {
         this.setupDataChannel(event.channel, playerId)
-      }
+      })
     }
 
     return pc
@@ -323,18 +323,18 @@ export class NetworkService {
   private setupDataChannel(channel: RTCDataChannel, playerId: string): void {
     this.dataChannels.set(playerId, channel)
 
-    channel.onopen = () => {
+    channel.addEventListener('open', () => {
       this.onConnectCallbacks.forEach((cb) => cb(playerId))
-    }
+    })
 
-    channel.onclose = () => {
+    channel.addEventListener('close', () => {
       this.onDisconnectCallbacks.forEach((cb) => cb(playerId))
-    }
+    })
 
-    channel.onmessage = (event) => {
+    channel.addEventListener('message', (event) => {
       const msg = JSON.parse(event.data) as NetworkMessage
       this.onEventCallbacks.forEach((cb) => cb(msg.payload))
-    }
+    })
   }
 
   private async handleOffer(playerId: string, offer: RTCSessionDescriptionInit): Promise<void> {
