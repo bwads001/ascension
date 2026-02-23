@@ -54,11 +54,12 @@ function Floor({ width, depth }: { width: number; depth: number }) {
 function generateDungeon(floor: number): RoomConfig[] {
   const rooms: RoomConfig[] = []
   const numRooms = 3 + Math.floor(floor / 2)
-  const baseSize = 12
+  const minSize = 14
+  const maxSize = 26
 
   for (let i = 0; i < numRooms; i++) {
-    const roomWidth = baseSize + Math.floor(Math.random() * 6)
-    const roomDepth = baseSize + Math.floor(Math.random() * 6)
+    const roomWidth = minSize + Math.floor(Math.random() * (maxSize - minSize))
+    const roomDepth = minSize + Math.floor(Math.random() * (maxSize - minSize))
 
     let x = 0
     let z = 0

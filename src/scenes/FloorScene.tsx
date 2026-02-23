@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 
 import { gameLoop } from '../engine/GameLoop'
 import { Player, Monster } from '../entities'
@@ -93,6 +93,11 @@ export default function FloorScene() {
   const floor = useWorldStore((s) => s.floor)
   const setFloor = useWorldStore((s) => s.setFloor)
   const worldEntities = useWorldStore((s) => s.entities)
+  const initializedRef = useRef(false)
+
+  useEffect(() => {
+    initializedRef.current = false
+  }, [floor])
 
   const rooms = useMemo(() => generateDungeon(floor), [floor])
   const monsterSpawns = useMemo(() => generateMonsterSpawns(floor, rooms), [floor, rooms])
@@ -119,24 +124,30 @@ export default function FloorScene() {
     if (!currentCharacter) return
 
     const store = useWorldStore.getState()
-    if (!store.entities[currentCharacter.id]) {
-      const firstRoom = rooms[0]
-      const stats = currentCharacter.stats
-      const attrs = stats.attributes ?? { strength: 5, agility: 5, intellect: 5, stamina: 5 }
-      const maxHealth = 100 + attrs.stamina * 10
-      let baseDamage = 8
-      switch (currentCharacter.class) {
-        case 'warrior':
-          baseDamage += attrs.strength * 2
-          break
-        case 'archer':
-          baseDamage += attrs.agility * 2
-          break
-        case 'mage':
-          baseDamage += attrs.intellect * 2
-          break
-      }
+    const firstRoom = rooms[0]
+    const stats = currentCharacter.stats
+    const attrs = stats.attributes ?? { strength: 5, agility: 5, intellect: 5, stamina: 5 }
+    const maxHealth = 100 + attrs.stamina * 10
+    let baseDamage = 8
+    switch (currentCharacter.class) {
+      case 'warrior':
+        baseDamage += attrs.strength * 2
+        break
+      case 'archer':
+        baseDamage += attrs.agility * 2
+        break
+      case 'mage':
+        baseDamage += attrs.intellect * 2
+        break
+    }
 
+    const existingEntity = store.entities[currentCharacter.id]
+    if (existingEntity) {
+      store.updateEntity(currentCharacter.id, {
+        position: { x: firstRoom.x, y: 0, z: firstRoom.z, rotation: 0 },
+        velocity: { x: 0, y: 0, z: 0 },
+      })
+    } else {
       const entity = createEntity({
         type: 'player',
         id: currentCharacter.id,
@@ -179,12 +190,13 @@ export default function FloorScene() {
   }, [currentCharacter, rooms])
 
   useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+
     const store = useWorldStore.getState()
 
     for (const spawn of monsterSpawns) {
       const id = `floor${floor}_${spawn.type}_${Math.round(spawn.position[0])}_${Math.round(spawn.position[2])}`
-
-      if (store.entities[id]) continue
 
       const monsterDefaults = MONSTER_DEFAULTS[spawn.type]
       const scaledStats = getFloorMonsterStats(floor, spawn.type)
@@ -226,6 +238,18 @@ export default function FloorScene() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [setFloor])
+
+  useEffect(() => {
+    return () => {
+      const store = useWorldStore.getState()
+      const floorMonsterIds = Object.keys(store.entities).filter((id) =>
+        id.startsWith(`floor${floor}_`)
+      )
+      for (const id of floorMonsterIds) {
+        store.removeEntity(id)
+      }
+    }
+  }, [floor])
 
   const monsters = useMemo(() => {
     return Object.values(worldEntities).filter((e) => e.type === 'monster')
