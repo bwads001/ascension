@@ -269,7 +269,7 @@ export default function FloorScene() {
       <ambientLight intensity={0.4} />
       <pointLight position={[0, 10, 0]} intensity={0.8} castShadow distance={30} />
 
-      <FloorDungeon floor={floor} onExit={handleExit} />
+      <FloorDungeon rooms={rooms} onExit={handleExit} />
 
       <Player />
       {monsters.map((monster) => (

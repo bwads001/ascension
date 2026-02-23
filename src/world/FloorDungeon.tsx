@@ -194,12 +194,11 @@ function ExitPortal({
 }
 
 interface FloorDungeonProps {
-  floor: number
+  rooms: RoomConfig[]
   onExit: () => void
 }
 
-export default function FloorDungeon({ floor, onExit }: FloorDungeonProps) {
-  const rooms = generateDungeon(floor)
+export default function FloorDungeon({ rooms, onExit }: FloorDungeonProps) {
   const lastRoom = rooms[rooms.length - 1]
   const exitPosition: [number, number, number] = [lastRoom.x, 0, lastRoom.z]
 
