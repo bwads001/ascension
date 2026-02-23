@@ -256,10 +256,6 @@ export default function FloorScene() {
     return Object.values(worldEntities).filter((e) => e.type === 'monster')
   }, [worldEntities])
 
-  const handleExit = () => {
-    setFloor(0)
-  }
-
   if (!currentCharacter || !currentCharacterId) {
     return null
   }
@@ -270,7 +266,7 @@ export default function FloorScene() {
       <ambientLight intensity={0.6} />
       <pointLight position={[0, 10, 0]} intensity={2} castShadow distance={50} />
 
-      <FloorDungeon rooms={rooms} onExit={handleExit} />
+      <FloorDungeon rooms={rooms} />
 
       <Player />
       {monsters.map((monster) => (

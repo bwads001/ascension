@@ -20,10 +20,11 @@ export function Well({ position }: { position: [number, number, number] }) {
     if (!currentCharacterId || isFull) return
 
     const event: GameEvent = {
-      type: 'HEAL',
+      type: 'APPROACH_INTERACT',
       timestamp: performance.now(),
       entityId: currentCharacterId,
-      amount: maxHealth,
+      interactType: 'heal',
+      targetPosition: position,
     }
 
     eventQueue.enqueue(event)

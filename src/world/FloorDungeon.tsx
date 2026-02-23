@@ -371,15 +371,25 @@ function Corridor({ from, to }: { from: RoomConfig; to: RoomConfig }) {
   }
 }
 
-function ExitPortal({
-  position,
-  onExit,
-}: {
-  position: [number, number, number]
-  onExit: () => void
-}) {
+function ExitPortal({ position }: { position: [number, number, number] }) {
+  const currentCharacterId = useCharacterStore((s) => s.currentCharacterId)
+
+  const handleClick = () => {
+    if (!currentCharacterId) return
+
+    const event: GameEvent = {
+      type: 'APPROACH_INTERACT',
+      timestamp: performance.now(),
+      entityId: currentCharacterId,
+      interactType: 'portal',
+      targetPosition: position,
+    }
+
+    eventQueue.enqueue(event)
+  }
+
   return (
-    <group position={position} onClick={onExit}>
+    <group position={position} onClick={handleClick}>
       <RigidBody type="fixed" colliders="cuboid">
         <mesh position={[0, 0.05, 0]}>
           <cylinderGeometry args={[1.5, 1.5, 0.1, 16]} />
@@ -399,10 +409,9 @@ function ExitPortal({
 
 interface FloorDungeonProps {
   rooms: RoomConfig[]
-  onExit: () => void
 }
 
-export default function FloorDungeon({ rooms, onExit }: FloorDungeonProps) {
+export default function FloorDungeon({ rooms }: FloorDungeonProps) {
   const setRoomBounds = useWorldStore((s) => s.setRoomBounds)
 
   useEffect(() => {
@@ -531,7 +540,7 @@ export default function FloorDungeon({ rooms, onExit }: FloorDungeonProps) {
       {rooms.slice(0, -1).map((room, i) => (
         <Corridor key={`corridor-${i}`} from={room} to={rooms[i + 1]} />
       ))}
-      <ExitPortal position={exitPosition} onExit={onExit} />
+      <ExitPortal position={exitPosition} />
     </group>
   )
 }

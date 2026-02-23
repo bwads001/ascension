@@ -2,7 +2,9 @@ import { Html } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
 import { useState } from 'react'
 
+import { eventQueue } from '../engine/EventQueue'
 import { useWorldStore, useCharacterStore } from '../store'
+import type { GameEvent } from '../types'
 
 const KILLS_REQUIRED = 5
 
@@ -10,7 +12,6 @@ export function TowerEntrance({ position }: { position: [number, number, number]
   const [showLockedMessage, setShowLockedMessage] = useState(false)
   const currentCharacterId = useCharacterStore((s) => s.currentCharacterId)
   const entities = useWorldStore((s) => s.entities)
-  const setFloor = useWorldStore((s) => s.setFloor)
 
   const player = currentCharacterId ? entities[currentCharacterId] : null
   const kills = player?.components.player?.kills ?? 0
@@ -23,7 +24,17 @@ export function TowerEntrance({ position }: { position: [number, number, number]
       return
     }
 
-    setFloor(1)
+    if (!currentCharacterId) return
+
+    const event: GameEvent = {
+      type: 'APPROACH_INTERACT',
+      timestamp: performance.now(),
+      entityId: currentCharacterId,
+      interactType: 'tower',
+      targetPosition: position,
+    }
+
+    eventQueue.enqueue(event)
   }
 
   return (

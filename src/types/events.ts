@@ -3,6 +3,7 @@ import type { Entity, ComponentMap } from './entities'
 export type GameEventType =
   | 'MOVE_TO'
   | 'APPROACH_ENTITY'
+  | 'APPROACH_INTERACT'
   | 'ATTACK_ENTITY'
   | 'DAMAGE_DEALT'
   | 'ENTITY_DIED'
@@ -35,6 +36,13 @@ export interface ApproachEntityEvent extends BaseGameEvent {
   entityId: string
   targetId: string
   stopAtRange: number
+}
+
+export interface ApproachInteractEvent extends BaseGameEvent {
+  type: 'APPROACH_INTERACT'
+  entityId: string
+  interactType: 'heal' | 'tower' | 'portal'
+  targetPosition: [number, number, number]
 }
 
 export interface AttackEntityEvent extends BaseGameEvent {
@@ -118,6 +126,7 @@ export interface GameResumedEvent extends BaseGameEvent {
 export type GameEvent =
   | MoveToEvent
   | ApproachEntityEvent
+  | ApproachInteractEvent
   | AttackEntityEvent
   | DamageDealtEvent
   | EntityDiedEvent

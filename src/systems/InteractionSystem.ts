@@ -1,6 +1,14 @@
+import { eventQueue } from '../engine/EventQueue'
 import { useCombatStore, useWorldStore } from '../store'
 import type { System, GameEvent, Entity } from '../types'
-import { inRange } from '../utils/math'
+import { inRange, distanceXZ } from '../utils/math'
+
+const INTERACT_RANGE = 2
+
+interface PendingInteraction {
+  type: 'heal' | 'tower' | 'portal'
+  targetPosition: [number, number, number]
+}
 
 function createMoveToEvent(entityId: string, target: [number, number, number]): GameEvent {
   return {
@@ -38,6 +46,8 @@ export class InteractionSystem implements System {
   readonly name = 'InteractionSystem'
   readonly priority = 5
 
+  private pendingInteractions: Map<string, PendingInteraction> = new Map()
+
   update(entities: Entity[], events: GameEvent[], _deltaTime: number): GameEvent[] {
     const emittedEvents: GameEvent[] = []
     const currentTime = performance.now()
@@ -49,14 +59,32 @@ export class InteractionSystem implements System {
         if (newEvent) emittedEvents.push(newEvent)
       } else if (event.type === 'APPROACH_ENTITY') {
         this.handleApproachEntity(event.entityId, event.targetId, store)
+      } else if (event.type === 'APPROACH_INTERACT') {
+        this.handleApproachInteract(event, store)
       }
     }
 
     for (const entity of entities) {
       if (entity.type !== 'player') continue
-      if (!entity.components.combat?.targetId) continue
       if (!entity.components.position) continue
       if (entity.components.health?.dead) continue
+
+      const pending = this.pendingInteractions.get(entity.id)
+      if (pending) {
+        const pos = entity.components.position
+        const dist = distanceXZ(
+          { x: pos.x, y: pos.y, z: pos.z },
+          { x: pending.targetPosition[0], y: 0, z: pending.targetPosition[2] }
+        )
+
+        if (dist <= INTERACT_RANGE) {
+          this.executeInteraction(entity.id, pending, store, emittedEvents)
+          this.pendingInteractions.delete(entity.id)
+        }
+        continue
+      }
+
+      if (!entity.components.combat?.targetId) continue
 
       const targetId = entity.components.combat.targetId
       const target = store.entities[targetId]
@@ -103,9 +131,65 @@ export class InteractionSystem implements System {
     const entity = store.entities[entityId]
     if (!entity?.components.combat) return
 
+    this.pendingInteractions.delete(entityId)
+
     store.updateEntity(entityId, {
       combat: { ...entity.components.combat, targetId },
     })
+  }
+
+  private handleApproachInteract(
+    event: {
+      entityId: string
+      interactType: 'heal' | 'tower' | 'portal'
+      targetPosition: [number, number, number]
+    },
+    store: ReturnType<typeof useWorldStore.getState>
+  ): void {
+    const entity = store.entities[event.entityId]
+    if (!entity?.components.position) return
+
+    if (entity.components.combat) {
+      store.updateEntity(event.entityId, {
+        combat: { ...entity.components.combat, targetId: null },
+      })
+    }
+
+    this.pendingInteractions.set(event.entityId, {
+      type: event.interactType,
+      targetPosition: event.targetPosition,
+    })
+
+    eventQueue.enqueue({
+      type: 'MOVE_TO',
+      timestamp: performance.now(),
+      entityId: event.entityId,
+      target: event.targetPosition,
+    })
+  }
+
+  private executeInteraction(
+    entityId: string,
+    interaction: PendingInteraction,
+    store: ReturnType<typeof useWorldStore.getState>,
+    events: GameEvent[]
+  ): void {
+    if (interaction.type === 'heal') {
+      const entity = store.entities[entityId]
+      if (!entity?.components.health) return
+
+      const healEvent: GameEvent = {
+        type: 'HEAL',
+        timestamp: performance.now(),
+        entityId,
+        amount: entity.components.health.max,
+      }
+      events.push(healEvent)
+    } else if (interaction.type === 'tower') {
+      store.setFloor(1)
+    } else if (interaction.type === 'portal') {
+      store.setFloor(0)
+    }
   }
 
   private handleInteract(entityId: string, targetId: string, entities: Entity[]): GameEvent | null {
