@@ -1,9 +1,62 @@
 import { useWorldStore } from '../store'
-import type { System, GameEvent, Entity } from '../types'
+import type { System, GameEvent, Entity, RoomBounds } from '../types'
 import { moveToward, distanceXZ, inRange } from '../utils/math'
 import { isInTown, TOWN_RADIUS } from '../world'
 
 const PLAYER_SPEED = 8
+const WALL_MARGIN = 0.6
+
+function isPointInRoom(x: number, z: number, room: RoomBounds, margin: number): boolean {
+  const halfWidth = room.width / 2 - margin
+  const halfDepth = room.depth / 2 - margin
+  return (
+    x >= room.x - halfWidth &&
+    x <= room.x + halfWidth &&
+    z >= room.z - halfDepth &&
+    z <= room.z + halfDepth
+  )
+}
+
+function findValidPosition(
+  currentX: number,
+  currentZ: number,
+  targetX: number,
+  targetZ: number,
+  roomBounds: RoomBounds[]
+): { x: number; z: number } | null {
+  for (const room of roomBounds) {
+    if (isPointInRoom(targetX, targetZ, room, WALL_MARGIN)) {
+      return { x: targetX, z: targetZ }
+    }
+  }
+
+  for (const room of roomBounds) {
+    const clampedX = Math.max(
+      room.x - room.width / 2 + WALL_MARGIN,
+      Math.min(room.x + room.width / 2 - WALL_MARGIN, targetX)
+    )
+    const clampedZ = Math.max(
+      room.z - room.depth / 2 + WALL_MARGIN,
+      Math.min(room.z + room.depth / 2 - WALL_MARGIN, targetZ)
+    )
+
+    if (isPointInRoom(clampedX, clampedZ, room, WALL_MARGIN)) {
+      const dx = clampedX - currentX
+      const dz = clampedZ - currentZ
+      const slideX = Math.abs(dx) > Math.abs(dz) ? clampedX : currentX
+      const slideZ = Math.abs(dz) > Math.abs(dx) ? clampedZ : currentZ
+
+      for (const r of roomBounds) {
+        if (isPointInRoom(slideX, slideZ, r, WALL_MARGIN)) {
+          return { x: slideX, z: slideZ }
+        }
+      }
+      return { x: clampedX, z: clampedZ }
+    }
+  }
+
+  return null
+}
 
 function clampPositionOutsideTown(
   newX: number,
@@ -120,6 +173,24 @@ export class MovementSystem implements System {
       const clamped = clampPositionOutsideTown(newPos.x, newPos.z, 1)
       newPos.x = clamped.x
       newPos.z = clamped.z
+    }
+
+    if (store.floor > 0 && store.roomBounds.length > 0) {
+      const validPos = findValidPosition(
+        position.x,
+        position.z,
+        newPos.x,
+        newPos.z,
+        store.roomBounds
+      )
+      if (!validPos) {
+        store.updateEntity(entity.id, {
+          velocity: { x: 0, y: 0, z: 0 },
+        })
+        return
+      }
+      newPos.x = validPos.x
+      newPos.z = validPos.z
     }
 
     store.updateEntity(entity.id, {

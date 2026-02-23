@@ -2,16 +2,25 @@ import { create } from 'zustand'
 
 import type { Entity, ComponentMap } from '../types'
 
+export interface RoomBounds {
+  x: number
+  z: number
+  width: number
+  depth: number
+}
+
 interface WorldState {
   entities: Record<string, Entity>
   floor: number
   time: number
+  roomBounds: RoomBounds[]
 
   setEntity: (entity: Entity) => void
   updateEntity: (id: string, components: Partial<ComponentMap>) => void
   removeEntity: (id: string) => void
   setFloor: (floor: number) => void
   setTime: (time: number) => void
+  setRoomBounds: (bounds: RoomBounds[]) => void
   reset: () => void
 }
 
@@ -19,6 +28,7 @@ export const useWorldStore = create<WorldState>((set) => ({
   entities: {},
   floor: 0,
   time: 0,
+  roomBounds: [],
 
   setEntity: (entity) =>
     set((state) => ({
@@ -50,5 +60,6 @@ export const useWorldStore = create<WorldState>((set) => ({
 
   setFloor: (floor) => set({ floor }),
   setTime: (time) => set({ time }),
-  reset: () => set({ entities: {}, floor: 0, time: 0 }),
+  setRoomBounds: (roomBounds) => set({ roomBounds }),
+  reset: () => set({ entities: {}, floor: 0, time: 0, roomBounds: [] }),
 }))

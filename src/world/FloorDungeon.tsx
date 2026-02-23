@@ -1,9 +1,10 @@
 import type { ThreeEvent } from '@react-three/fiber'
 import { RigidBody } from '@react-three/rapier'
+import { useEffect } from 'react'
 
 import { eventQueue } from '../engine/EventQueue'
-import { useCharacterStore } from '../store'
-import type { GameEvent } from '../types'
+import { useCharacterStore, useWorldStore } from '../store'
+import type { GameEvent, RoomBounds } from '../types'
 
 interface RoomConfig {
   x: number
@@ -84,9 +85,9 @@ function Torch({ position }: { position: [number, number, number] }) {
       </mesh>
       <mesh position={[0, 0.3, 0]}>
         <sphereGeometry args={[0.08, 8, 8]} />
-        <meshStandardMaterial color="#ff6600" emissive="#ff4400" emissiveIntensity={2} />
+        <meshStandardMaterial color="#ff6600" emissive="#ff4400" emissiveIntensity={3} />
       </mesh>
-      <pointLight position={[0, 0.3, 0]} intensity={3} distance={12} color="#ff9944" castShadow />
+      <pointLight position={[0, 0.5, 0]} intensity={8} distance={20} color="#ffaa55" castShadow />
     </group>
   )
 }
@@ -128,10 +129,14 @@ function Room({ config }: { config: RoomConfig }) {
   const wallThickness = 0.5
 
   const torchPositions: [number, number, number][] = [
-    [x - width / 2 + 1.5, 2.5, z - depth / 2 + 1.5],
-    [x + width / 2 - 1.5, 2.5, z - depth / 2 + 1.5],
-    [x - width / 2 + 1.5, 2.5, z + depth / 2 - 1.5],
-    [x + width / 2 - 1.5, 2.5, z + depth / 2 - 1.5],
+    [x - width / 2 + 2, 2.5, z - depth / 2 + 2],
+    [x + width / 2 - 2, 2.5, z - depth / 2 + 2],
+    [x - width / 2 + 2, 2.5, z + depth / 2 - 2],
+    [x + width / 2 - 2, 2.5, z + depth / 2 - 2],
+    [x - width / 2 + 2, 2.5, z],
+    [x + width / 2 - 2, 2.5, z],
+    [x, 2.5, z - depth / 2 + 2],
+    [x, 2.5, z + depth / 2 - 2],
   ]
 
   return (
@@ -178,6 +183,8 @@ function Corridor({ from, to }: { from: RoomConfig; to: RoomConfig }) {
   if (distance < 1) return null
 
   const corridorWidth = 3
+  const wallHeight = 4
+  const wallThickness = 0.5
 
   const isHorizontal = Math.abs(dx) > Math.abs(dz)
 
@@ -196,6 +203,19 @@ function Corridor({ from, to }: { from: RoomConfig; to: RoomConfig }) {
             <meshStandardMaterial color="#2a2a3a" roughness={0.95} />
           </mesh>
         </RigidBody>
+        <Wall
+          position={[centerX, wallHeight / 2, from.z - corridorWidth / 2]}
+          width={corridorLength}
+          height={wallHeight}
+          depth={wallThickness}
+        />
+        <Wall
+          position={[centerX, wallHeight / 2, from.z + corridorWidth / 2]}
+          width={corridorLength}
+          height={wallHeight}
+          depth={wallThickness}
+        />
+        <Torch position={[centerX, 2.5, from.z - 1]} />
       </group>
     )
   } else {
@@ -213,6 +233,19 @@ function Corridor({ from, to }: { from: RoomConfig; to: RoomConfig }) {
             <meshStandardMaterial color="#2a2a3a" roughness={0.95} />
           </mesh>
         </RigidBody>
+        <Wall
+          position={[from.x - corridorWidth / 2, wallHeight / 2, centerZ]}
+          width={wallThickness}
+          height={wallHeight}
+          depth={corridorLength}
+        />
+        <Wall
+          position={[from.x + corridorWidth / 2, wallHeight / 2, centerZ]}
+          width={wallThickness}
+          height={wallHeight}
+          depth={corridorLength}
+        />
+        <Torch position={[from.x, 2.5, centerZ]} />
       </group>
     )
   }
@@ -250,6 +283,43 @@ interface FloorDungeonProps {
 }
 
 export default function FloorDungeon({ rooms, onExit }: FloorDungeonProps) {
+  const setRoomBounds = useWorldStore((s) => s.setRoomBounds)
+
+  useEffect(() => {
+    const bounds: RoomBounds[] = rooms.map((room) => ({
+      x: room.x,
+      z: room.z,
+      width: room.width,
+      depth: room.depth,
+    }))
+
+    for (let i = 0; i < rooms.length - 1; i++) {
+      const from = rooms[i]
+      const to = rooms[i + 1]
+      const dx = to.x - from.x
+      const dz = to.z - from.z
+      const corridorWidth = 3
+
+      if (Math.abs(dx) > Math.abs(dz)) {
+        const corridorLength = Math.abs(dx) - from.width / 2 - to.width / 2
+        if (corridorLength > 0) {
+          const centerX = from.x + (dx > 0 ? 1 : -1) * (from.width / 2 + corridorLength / 2)
+          bounds.push({ x: centerX, z: from.z, width: corridorLength, depth: corridorWidth })
+        }
+      } else {
+        const corridorLength = Math.abs(dz) - from.depth / 2 - to.depth / 2
+        if (corridorLength > 0) {
+          const centerZ = from.z + (dz > 0 ? 1 : -1) * (from.depth / 2 + corridorLength / 2)
+          bounds.push({ x: from.x, z: centerZ, width: corridorWidth, depth: corridorLength })
+        }
+      }
+    }
+
+    setRoomBounds(bounds)
+
+    return () => setRoomBounds([])
+  }, [rooms, setRoomBounds])
+
   const lastRoom = rooms[rooms.length - 1]
   const exitPosition: [number, number, number] = [lastRoom.x, 0, lastRoom.z]
 
