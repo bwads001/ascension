@@ -11,6 +11,7 @@ export interface SkillDefinition {
   range: number
   targetType: SkillTargetType
   classes: PlayerClass[]
+  unlockLevel: number
   damageMultiplier?: number
   areaRadius?: number
   manaCost?: number
@@ -32,6 +33,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     range: 3,
     targetType: 'enemy',
     classes: ['warrior', 'archer', 'mage'],
+    unlockLevel: 1,
     damageMultiplier: 1,
   },
   power_strike: {
@@ -43,6 +45,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     range: 3,
     targetType: 'enemy',
     classes: ['warrior'],
+    unlockLevel: 2,
     damageMultiplier: 2,
   },
   whirlwind: {
@@ -54,8 +57,20 @@ export const SKILLS: Record<string, SkillDefinition> = {
     range: 4,
     targetType: 'area',
     classes: ['warrior'],
+    unlockLevel: 4,
     damageMultiplier: 0.8,
     areaRadius: 4,
+  },
+  battle_cry: {
+    id: 'battle_cry',
+    name: 'Battle Cry',
+    description: 'Boost damage for 5 seconds',
+    icon: '📢',
+    cooldown: 20000,
+    range: 0,
+    targetType: 'self',
+    classes: ['warrior'],
+    unlockLevel: 6,
   },
   aimed_shot: {
     id: 'aimed_shot',
@@ -66,6 +81,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     range: 10,
     targetType: 'enemy',
     classes: ['archer'],
+    unlockLevel: 2,
     damageMultiplier: 2.5,
   },
   multi_shot: {
@@ -77,8 +93,20 @@ export const SKILLS: Record<string, SkillDefinition> = {
     range: 8,
     targetType: 'area',
     classes: ['archer'],
+    unlockLevel: 4,
     damageMultiplier: 0.6,
     areaRadius: 8,
+  },
+  evasion: {
+    id: 'evasion',
+    name: 'Evasion',
+    description: 'Dodge attacks for 3 seconds',
+    icon: '💨',
+    cooldown: 15000,
+    range: 0,
+    targetType: 'self',
+    classes: ['archer'],
+    unlockLevel: 6,
   },
   fireball: {
     id: 'fireball',
@@ -89,6 +117,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     range: 8,
     targetType: 'enemy',
     classes: ['mage'],
+    unlockLevel: 2,
     damageMultiplier: 2,
   },
   frost_nova: {
@@ -100,6 +129,7 @@ export const SKILLS: Record<string, SkillDefinition> = {
     range: 5,
     targetType: 'area',
     classes: ['mage'],
+    unlockLevel: 4,
     damageMultiplier: 1,
     areaRadius: 5,
   },
@@ -112,31 +142,30 @@ export const SKILLS: Record<string, SkillDefinition> = {
     range: 0,
     targetType: 'self',
     classes: ['mage'],
-  },
-  battle_cry: {
-    id: 'battle_cry',
-    name: 'Battle Cry',
-    description: 'Boost damage for 5 seconds',
-    icon: '📢',
-    cooldown: 20000,
-    range: 0,
-    targetType: 'self',
-    classes: ['warrior'],
-  },
-  evasion: {
-    id: 'evasion',
-    name: 'Evasion',
-    description: 'Dodge attacks for 3 seconds',
-    icon: '💨',
-    cooldown: 15000,
-    range: 0,
-    targetType: 'self',
-    classes: ['archer'],
+    unlockLevel: 6,
   },
 }
 
-export const CLASS_SKILL_BARS: Record<PlayerClass, string[]> = {
-  warrior: ['basic_attack', 'power_strike', 'whirlwind', 'battle_cry', '', '', '', '', '', ''],
-  archer: ['basic_attack', 'aimed_shot', 'multi_shot', 'evasion', '', '', '', '', '', ''],
-  mage: ['basic_attack', 'fireball', 'frost_nova', 'heal', '', '', '', '', '', ''],
+export function getAvailableSkills(playerClass: PlayerClass, level: number): string[] {
+  const skills: string[] = ['basic_attack']
+
+  for (const [id, skill] of Object.entries(SKILLS)) {
+    if (id === 'basic_attack') continue
+    if (skill.classes.includes(playerClass) && skill.unlockLevel <= level) {
+      skills.push(id)
+    }
+  }
+
+  return skills
+}
+
+export function getSkillBar(playerClass: PlayerClass, level: number): (string | null)[] {
+  const available = getAvailableSkills(playerClass, level)
+  const bar: (string | null)[] = Array(10).fill(null)
+
+  for (let i = 0; i < Math.min(available.length, 10); i++) {
+    bar[i] = available[i]
+  }
+
+  return bar
 }

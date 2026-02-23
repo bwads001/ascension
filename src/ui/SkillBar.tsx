@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { eventQueue } from '../engine/EventQueue'
 import { useCharacterStore, useSkillStore, useWorldStore } from '../store'
 import type { GameEvent } from '../types'
-import { SKILLS, CLASS_SKILL_BARS } from '../types/skills'
+import { SKILLS, getSkillBar } from '../types/skills'
 
 function SkillSlot({
   skillId,
@@ -30,8 +30,9 @@ function SkillSlot({
 
   if (!skillId) {
     return (
-      <div style={styles.emptySlot}>
+      <div style={styles.lockedSlot}>
         <span style={styles.keybind}>{slotKey}</span>
+        <span style={styles.lockedIcon}>🔒</span>
       </div>
     )
   }
@@ -39,8 +40,9 @@ function SkillSlot({
   const skill = SKILLS[skillId]
   if (!skill) {
     return (
-      <div style={styles.emptySlot}>
+      <div style={styles.lockedSlot}>
         <span style={styles.keybind}>{slotKey}</span>
+        <span style={styles.lockedIcon}>🔒</span>
       </div>
     )
   }
@@ -81,7 +83,8 @@ export default function SkillBar() {
   const tick = useSkillStore((s) => s.tick)
 
   const playerClass = currentCharacter?.class ?? 'warrior'
-  const skillBar = CLASS_SKILL_BARS[playerClass]
+  const playerLevel = currentCharacter?.stats.level ?? 1
+  const skillBar = getSkillBar(playerClass, playerLevel)
 
   const activateSkill = useCallback(
     (skillId: string) => {
@@ -219,17 +222,22 @@ const styles: Record<string, React.CSSProperties> = {
     borderColor: '#fff',
     background: 'linear-gradient(180deg, #5a5a6a 0%, #4a4a5a 100%)',
   },
-  emptySlot: {
+  lockedSlot: {
     width: 60,
     height: 70,
-    background: 'rgba(30, 30, 40, 0.5)',
+    background: 'rgba(20, 20, 30, 0.6)',
     borderRadius: 6,
-    border: '2px solid #333',
+    border: '2px solid #222',
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     justifyContent: 'center',
     position: 'relative',
+    opacity: 0.5,
+  },
+  lockedIcon: {
+    fontSize: 20,
+    opacity: 0.5,
   },
   keybind: {
     position: 'absolute',

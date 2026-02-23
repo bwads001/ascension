@@ -1,5 +1,6 @@
 import { useWorldStore, useCharacterStore } from '../store'
 import type { PlayerComponent } from '../types'
+import { SKILLS, getAvailableSkills } from '../types/skills'
 
 const ATTRIBUTE_INFO = {
   strength: { name: 'Strength', effect: '+2 melee damage per point', icon: '⚔️' },
@@ -161,6 +162,40 @@ export default function CharacterScreen({ onClose }: CharacterScreenProps) {
               <span style={styles.statLabel}>Total Kills</span>
               <span style={styles.statValue}>{player.kills}</span>
             </div>
+          </div>
+        </div>
+
+        <div style={styles.section}>
+          <h3 style={styles.sectionTitle}>Skills</h3>
+          <div style={styles.skillsList}>
+            {getAvailableSkills(player.class, player.level).map((skillId) => {
+              const skill = SKILLS[skillId]
+              if (!skill) return null
+              return (
+                <div key={skillId} style={styles.skillItem}>
+                  <span style={styles.skillIcon}>{skill.icon}</span>
+                  <div style={styles.skillInfo}>
+                    <span style={styles.skillName}>{skill.name}</span>
+                    <span style={styles.skillDesc}>{skill.description}</span>
+                  </div>
+                  <span style={styles.skillCooldown}>
+                    {skill.cooldown > 0 ? `${skill.cooldown / 1000}s` : 'Instant'}
+                  </span>
+                </div>
+              )
+            })}
+            {Object.values(SKILLS)
+              .filter((s) => s.classes.includes(player.class) && s.unlockLevel > player.level)
+              .slice(0, 2)
+              .map((skill) => (
+                <div key={skill.id} style={styles.skillItemLocked}>
+                  <span style={styles.skillIcon}>🔒</span>
+                  <div style={styles.skillInfo}>
+                    <span style={styles.skillNameLocked}>Unlocks at Level {skill.unlockLevel}</span>
+                    <span style={styles.skillDesc}>{skill.name}</span>
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
 
@@ -343,5 +378,59 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 12,
     fontFamily: 'system-ui, sans-serif',
     marginTop: 8,
+  },
+  skillsList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+  skillItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '10px 12px',
+    background: 'rgba(74, 138, 74, 0.15)',
+    borderRadius: 6,
+    border: '1px solid rgba(74, 138, 74, 0.3)',
+  },
+  skillItemLocked: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    padding: '10px 12px',
+    background: 'rgba(100, 100, 100, 0.1)',
+    borderRadius: 6,
+    border: '1px solid rgba(100, 100, 100, 0.2)',
+    opacity: 0.7,
+  },
+  skillIcon: {
+    fontSize: 20,
+  },
+  skillInfo: {
+    flex: 1,
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 2,
+  },
+  skillName: {
+    color: '#fff',
+    fontFamily: 'system-ui, sans-serif',
+    fontSize: 13,
+    fontWeight: 600,
+  },
+  skillNameLocked: {
+    color: '#888',
+    fontFamily: 'system-ui, sans-serif',
+    fontSize: 11,
+  },
+  skillDesc: {
+    color: '#888',
+    fontFamily: 'system-ui, sans-serif',
+    fontSize: 11,
+  },
+  skillCooldown: {
+    color: '#4a8a4a',
+    fontFamily: 'monospace',
+    fontSize: 11,
   },
 }

@@ -6,6 +6,7 @@ export type GameEventType =
   | 'APPROACH_INTERACT'
   | 'ATTACK_ENTITY'
   | 'USE_SKILL'
+  | 'SKILL_UNLOCKED'
   | 'DAMAGE_DEALT'
   | 'ENTITY_DIED'
   | 'ENTITY_SPAWNED'
@@ -57,6 +58,12 @@ export interface UseSkillEvent extends BaseGameEvent {
   entityId: string
   skillId: string
   targetId: string
+}
+
+export interface SkillUnlockedEvent extends BaseGameEvent {
+  type: 'SKILL_UNLOCKED'
+  entityId: string
+  skillId: string
 }
 
 export interface DamageDealtEvent extends BaseGameEvent {
@@ -137,6 +144,7 @@ export type GameEvent =
   | ApproachInteractEvent
   | AttackEntityEvent
   | UseSkillEvent
+  | SkillUnlockedEvent
   | DamageDealtEvent
   | EntityDiedEvent
   | EntitySpawnedEvent
