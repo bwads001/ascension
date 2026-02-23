@@ -406,12 +406,48 @@ export default function FloorDungeon({ rooms, onExit }: FloorDungeonProps) {
   const setRoomBounds = useWorldStore((s) => s.setRoomBounds)
 
   useEffect(() => {
-    const bounds: RoomBounds[] = rooms.map((room) => ({
-      x: room.x,
-      z: room.z,
-      width: room.width,
-      depth: room.depth,
-    }))
+    const DOORWAY_BUFFER = 2
+    const bounds: RoomBounds[] = []
+
+    for (let i = 0; i < rooms.length; i++) {
+      const room = rooms[i]
+      let boundWidth = room.width
+      let boundDepth = room.depth
+      let boundX = room.x
+      let boundZ = room.z
+
+      if (i > 0) {
+        const prev = rooms[i - 1]
+        const dx = room.x - prev.x
+        const dz = room.z - prev.z
+        if (Math.abs(dx) > Math.abs(dz)) {
+          boundWidth += DOORWAY_BUFFER
+          if (dx > 0) boundX -= DOORWAY_BUFFER / 2
+          else boundX += DOORWAY_BUFFER / 2
+        } else {
+          boundDepth += DOORWAY_BUFFER
+          if (dz > 0) boundZ -= DOORWAY_BUFFER / 2
+          else boundZ += DOORWAY_BUFFER / 2
+        }
+      }
+
+      if (i < rooms.length - 1) {
+        const next = rooms[i + 1]
+        const dx = next.x - room.x
+        const dz = next.z - room.z
+        if (Math.abs(dx) > Math.abs(dz)) {
+          boundWidth += DOORWAY_BUFFER
+          if (dx > 0) boundX += DOORWAY_BUFFER / 2
+          else boundX -= DOORWAY_BUFFER / 2
+        } else {
+          boundDepth += DOORWAY_BUFFER
+          if (dz > 0) boundZ += DOORWAY_BUFFER / 2
+          else boundZ -= DOORWAY_BUFFER / 2
+        }
+      }
+
+      bounds.push({ x: boundX, z: boundZ, width: boundWidth, depth: boundDepth })
+    }
 
     for (let i = 0; i < rooms.length - 1; i++) {
       const from = rooms[i]
@@ -424,13 +460,23 @@ export default function FloorDungeon({ rooms, onExit }: FloorDungeonProps) {
         const corridorLength = Math.abs(dx) - from.width / 2 - to.width / 2
         if (corridorLength > 0) {
           const centerX = from.x + (dx > 0 ? 1 : -1) * (from.width / 2 + corridorLength / 2)
-          bounds.push({ x: centerX, z: from.z, width: corridorLength, depth: corridorWidth })
+          bounds.push({
+            x: centerX,
+            z: from.z,
+            width: corridorLength + DOORWAY_BUFFER,
+            depth: corridorWidth,
+          })
         }
       } else {
         const corridorLength = Math.abs(dz) - from.depth / 2 - to.depth / 2
         if (corridorLength > 0) {
           const centerZ = from.z + (dz > 0 ? 1 : -1) * (from.depth / 2 + corridorLength / 2)
-          bounds.push({ x: from.x, z: centerZ, width: corridorWidth, depth: corridorLength })
+          bounds.push({
+            x: from.x,
+            z: centerZ,
+            width: corridorWidth,
+            depth: corridorLength + DOORWAY_BUFFER,
+          })
         }
       }
     }

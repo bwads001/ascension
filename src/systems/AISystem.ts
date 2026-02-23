@@ -1,11 +1,42 @@
 import { useWorldStore } from '../store'
-import type { System, GameEvent, Entity } from '../types'
+import type { System, GameEvent, Entity, RoomBounds } from '../types'
 import { distanceXZ, inRange, randomPointInRadius } from '../utils/math'
 import { isInTown, TOWN_RADIUS } from '../world'
 
 const WANDER_INTERVAL = 5000
-const WANDER_RADIUS = 8
+const WANDER_RADIUS = 6
 const LEASH_DISTANCE = 20
+const WALL_MARGIN = 1.5
+const STUCK_DISTANCE = 0.1
+const STUCK_TIME = 2000
+
+function clampToRoomBounds(
+  x: number,
+  z: number,
+  roomBounds: RoomBounds[]
+): { x: number; z: number } {
+  for (const room of roomBounds) {
+    const inRoom =
+      x >= room.x - room.width / 2 &&
+      x <= room.x + room.width / 2 &&
+      z >= room.z - room.depth / 2 &&
+      z <= room.z + room.depth / 2
+
+    if (inRoom) {
+      return {
+        x: Math.max(
+          room.x - room.width / 2 + WALL_MARGIN,
+          Math.min(room.x + room.width / 2 - WALL_MARGIN, x)
+        ),
+        z: Math.max(
+          room.z - room.depth / 2 + WALL_MARGIN,
+          Math.min(room.z + room.depth / 2 - WALL_MARGIN, z)
+        ),
+      }
+    }
+  }
+  return { x, z }
+}
 
 function createMoveToEvent(entityId: string, target: [number, number, number]): GameEvent {
   return {
@@ -27,6 +58,8 @@ export class AISystem implements System {
   readonly name = 'AISystem'
   readonly priority = 15
 
+  private lastPositions: Map<string, { x: number; z: number; time: number }> = new Map()
+
   update(entities: Entity[], _events: GameEvent[], _deltaTime: number): GameEvent[] {
     const emittedEvents: GameEvent[] = []
     const currentTime = performance.now()
@@ -39,6 +72,12 @@ export class AISystem implements System {
 
       const ai = entity.components.ai
       const position = entity.components.position
+
+      const stuck = this.checkStuck(entity.id, position.x, position.z, currentTime, store)
+      if (stuck) {
+        this.pickNewWanderTarget(entity, currentTime, emittedEvents, store)
+        continue
+      }
 
       const player = this.findNearestPlayer(entity, entities)
 
@@ -82,6 +121,81 @@ export class AISystem implements System {
     }
 
     return nearest
+  }
+
+  private checkStuck(
+    entityId: string,
+    x: number,
+    z: number,
+    currentTime: number,
+    store: ReturnType<typeof useWorldStore.getState>
+  ): boolean {
+    const entity = store.entities[entityId]
+    const velocity = entity?.components.velocity
+    if (!velocity || (velocity.x === 0 && velocity.z === 0)) {
+      this.lastPositions.delete(entityId)
+      return false
+    }
+
+    const last = this.lastPositions.get(entityId)
+    if (!last) {
+      this.lastPositions.set(entityId, { x, z, time: currentTime })
+      return false
+    }
+
+    const moved = Math.abs(x - last.x) + Math.abs(z - last.z)
+    if (moved > STUCK_DISTANCE) {
+      this.lastPositions.set(entityId, { x, z, time: currentTime })
+      return false
+    }
+
+    if (currentTime - last.time > STUCK_TIME) {
+      this.lastPositions.delete(entityId)
+      return true
+    }
+
+    return false
+  }
+
+  private pickNewWanderTarget(
+    entity: Entity,
+    currentTime: number,
+    events: GameEvent[],
+    store: ReturnType<typeof useWorldStore.getState>
+  ): void {
+    const ai = entity.components.ai!
+    const position = entity.components.position!
+
+    let newTarget: { x: number; z: number }
+
+    if (store.floor > 0 && store.roomBounds.length > 0) {
+      const clamped = clampToRoomBounds(position.x, position.z, store.roomBounds)
+      newTarget = {
+        x: clamped.x + (Math.random() - 0.5) * WANDER_RADIUS,
+        z: clamped.z + (Math.random() - 0.5) * WANDER_RADIUS,
+      }
+      newTarget = clampToRoomBounds(newTarget.x, newTarget.z, store.roomBounds)
+    } else {
+      newTarget = randomPointInRadius(
+        { x: ai.homePosition[0], y: 0, z: ai.homePosition[2] },
+        WANDER_RADIUS
+      )
+      const [clampedX, clampedZ] = clampOutsideTown(newTarget.x, newTarget.z, 3)
+      newTarget.x = clampedX
+      newTarget.z = clampedZ
+    }
+
+    store.updateEntity(entity.id, {
+      ai: {
+        ...ai,
+        behavior: 'wander',
+        targetId: null,
+        wanderTarget: [newTarget.x, 0, newTarget.z],
+        lastWanderTime: currentTime,
+      },
+    })
+
+    events.push(createMoveToEvent(entity.id, [newTarget.x, 0, newTarget.z]))
   }
 
   private updateAggro(
