@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react'
 import { gameLoop } from './engine'
 import { StartScene, TownScene, FloorScene } from './scenes'
 import { useCharacterStore, useUIStore, useWorldStore } from './store'
-import { PlayerHUD, DeathScreen, CharacterScreen } from './ui'
+import { PlayerHUD, DeathScreen, CharacterScreen, SkillBar } from './ui'
 
 export default function App() {
   const { loaded, load } = useCharacterStore()
@@ -59,10 +59,11 @@ export default function App() {
         </Physics>
       </Canvas>
       <PlayerHUD />
+      <SkillBar />
       <DeathScreen />
       {showCharacterScreen && <CharacterScreen onClose={() => setShowCharacterScreen(false)} />}
       <div style={styles.hud}>
-        <p>ESC: {floor > 0 ? 'Return to Town' : 'Menu'} | C: Character</p>
+        <p>ESC: {floor > 0 ? 'Return to Town' : 'Menu'} | C: Character | 1-0: Skills</p>
       </div>
     </div>
   )

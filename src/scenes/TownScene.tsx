@@ -11,6 +11,7 @@ import {
   combatSystem,
   levelingSystem,
   regenSystem,
+  skillSystem,
 } from '../systems'
 import { PLAYER_DEFAULTS, MONSTER_DEFAULTS } from '../types'
 import type { MonsterType, Entity } from '../types'
@@ -60,6 +61,7 @@ export default function TownScene() {
     gameLoop.registerSystem(combatSystem)
     gameLoop.registerSystem(levelingSystem)
     gameLoop.registerSystem(regenSystem)
+    gameLoop.registerSystem(skillSystem)
 
     return () => {
       gameLoop.unregisterSystem('InteractionSystem')
@@ -68,6 +70,7 @@ export default function TownScene() {
       gameLoop.unregisterSystem('CombatSystem')
       gameLoop.unregisterSystem('LevelingSystem')
       gameLoop.unregisterSystem('RegenSystem')
+      gameLoop.unregisterSystem('SkillSystem')
     }
   }, [])
 
