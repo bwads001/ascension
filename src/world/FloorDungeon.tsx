@@ -13,6 +13,74 @@ interface RoomConfig {
   depth: number
 }
 
+function WallWithDoorway({
+  position,
+  width,
+  height,
+  depth,
+  doorwayWidth = 3,
+}: {
+  position: [number, number, number]
+  width: number
+  height: number
+  depth: number
+  doorwayWidth?: number
+}) {
+  const [px, py, pz] = position
+  const sideWidth = (width - doorwayWidth) / 2
+
+  return (
+    <group>
+      <RigidBody type="fixed" colliders="cuboid">
+        <mesh castShadow receiveShadow position={[px - (width - sideWidth) / 2, py, pz]}>
+          <boxGeometry args={[sideWidth, height, depth]} />
+          <meshStandardMaterial color="#3a3a4a" roughness={0.9} />
+        </mesh>
+      </RigidBody>
+      <RigidBody type="fixed" colliders="cuboid">
+        <mesh castShadow receiveShadow position={[px + (width - sideWidth) / 2, py, pz]}>
+          <boxGeometry args={[sideWidth, height, depth]} />
+          <meshStandardMaterial color="#3a3a4a" roughness={0.9} />
+        </mesh>
+      </RigidBody>
+    </group>
+  )
+}
+
+function WallDepthWithDoorway({
+  position,
+  width,
+  height,
+  depth,
+  doorwayWidth = 3,
+}: {
+  position: [number, number, number]
+  width: number
+  height: number
+  depth: number
+  doorwayWidth?: number
+}) {
+  const [px, py, pz] = position
+  const sideDepth = (depth - doorwayWidth) / 2
+
+  return (
+    <group>
+      <RigidBody type="fixed" colliders="cuboid">
+        <mesh castShadow receiveShadow position={[px, py, pz - (depth - sideDepth) / 2]}>
+          <boxGeometry args={[width, height, sideDepth]} />
+          <meshStandardMaterial color="#3a3a4a" roughness={0.9} />
+        </mesh>
+      </RigidBody>
+      <RigidBody type="fixed" colliders="cuboid">
+        <mesh castShadow receiveShadow position={[px, py, pz + (depth - sideDepth) / 2]}>
+          <boxGeometry args={[width, height, sideDepth]} />
+          <meshStandardMaterial color="#3a3a4a" roughness={0.9} />
+        </mesh>
+      </RigidBody>
+    </group>
+  )
+}
+
 function Wall({
   position,
   width,
@@ -123,7 +191,14 @@ function generateDungeon(floor: number): RoomConfig[] {
   return rooms
 }
 
-function Room({ config }: { config: RoomConfig }) {
+interface RoomConnections {
+  north?: boolean
+  south?: boolean
+  east?: boolean
+  west?: boolean
+}
+
+function Room({ config, connections }: { config: RoomConfig; connections: RoomConnections }) {
   const { x, z, width, depth } = config
   const wallHeight = 4
   const wallThickness = 0.5
@@ -143,30 +218,69 @@ function Room({ config }: { config: RoomConfig }) {
     <group position={[x, 0, z]}>
       <DungeonFloor width={width} depth={depth} />
 
-      <Wall
-        position={[0, wallHeight / 2, -depth / 2]}
-        width={width}
-        height={wallHeight}
-        depth={wallThickness}
-      />
-      <Wall
-        position={[0, wallHeight / 2, depth / 2]}
-        width={width}
-        height={wallHeight}
-        depth={wallThickness}
-      />
-      <Wall
-        position={[-width / 2, wallHeight / 2, 0]}
-        width={wallThickness}
-        height={wallHeight}
-        depth={depth}
-      />
-      <Wall
-        position={[width / 2, wallHeight / 2, 0]}
-        width={wallThickness}
-        height={wallHeight}
-        depth={depth}
-      />
+      {connections.north ? (
+        <WallDepthWithDoorway
+          position={[0, wallHeight / 2, -depth / 2]}
+          width={width}
+          height={wallHeight}
+          depth={wallThickness}
+        />
+      ) : (
+        <Wall
+          position={[0, wallHeight / 2, -depth / 2]}
+          width={width}
+          height={wallHeight}
+          depth={wallThickness}
+        />
+      )}
+
+      {connections.south ? (
+        <WallDepthWithDoorway
+          position={[0, wallHeight / 2, depth / 2]}
+          width={width}
+          height={wallHeight}
+          depth={wallThickness}
+        />
+      ) : (
+        <Wall
+          position={[0, wallHeight / 2, depth / 2]}
+          width={width}
+          height={wallHeight}
+          depth={wallThickness}
+        />
+      )}
+
+      {connections.west ? (
+        <WallWithDoorway
+          position={[-width / 2, wallHeight / 2, 0]}
+          width={wallThickness}
+          height={wallHeight}
+          depth={depth}
+        />
+      ) : (
+        <Wall
+          position={[-width / 2, wallHeight / 2, 0]}
+          width={wallThickness}
+          height={wallHeight}
+          depth={depth}
+        />
+      )}
+
+      {connections.east ? (
+        <WallWithDoorway
+          position={[width / 2, wallHeight / 2, 0]}
+          width={wallThickness}
+          height={wallHeight}
+          depth={depth}
+        />
+      ) : (
+        <Wall
+          position={[width / 2, wallHeight / 2, 0]}
+          width={wallThickness}
+          height={wallHeight}
+          depth={depth}
+        />
+      )}
 
       {torchPositions.map((pos, i) => (
         <Torch key={i} position={pos} />
@@ -320,13 +434,47 @@ export default function FloorDungeon({ rooms, onExit }: FloorDungeonProps) {
     return () => setRoomBounds([])
   }, [rooms, setRoomBounds])
 
+  function getRoomConnections(index: number): RoomConnections {
+    const connections: RoomConnections = {}
+
+    if (index > 0) {
+      const prev = rooms[index - 1]
+      const curr = rooms[index]
+      const dx = curr.x - prev.x
+      const dz = curr.z - prev.z
+      if (Math.abs(dx) > Math.abs(dz)) {
+        if (dx > 0) connections.west = true
+        else connections.east = true
+      } else {
+        if (dz > 0) connections.north = true
+        else connections.south = true
+      }
+    }
+
+    if (index < rooms.length - 1) {
+      const curr = rooms[index]
+      const next = rooms[index + 1]
+      const dx = next.x - curr.x
+      const dz = next.z - curr.z
+      if (Math.abs(dx) > Math.abs(dz)) {
+        if (dx > 0) connections.east = true
+        else connections.west = true
+      } else {
+        if (dz > 0) connections.south = true
+        else connections.north = true
+      }
+    }
+
+    return connections
+  }
+
   const lastRoom = rooms[rooms.length - 1]
   const exitPosition: [number, number, number] = [lastRoom.x, 0, lastRoom.z]
 
   return (
     <group>
       {rooms.map((room, i) => (
-        <Room key={i} config={room} />
+        <Room key={i} config={room} connections={getRoomConnections(i)} />
       ))}
       {rooms.slice(0, -1).map((room, i) => (
         <Corridor key={`corridor-${i}`} from={room} to={rooms[i + 1]} />
