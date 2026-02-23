@@ -1,4 +1,9 @@
+import type { ThreeEvent } from '@react-three/fiber'
 import { RigidBody } from '@react-three/rapier'
+
+import { eventQueue } from '../engine/EventQueue'
+import { useCharacterStore } from '../store'
+import type { GameEvent } from '../types'
 
 interface RoomConfig {
   x: number
@@ -28,10 +33,28 @@ function Wall({
   )
 }
 
-function Floor({ width, depth }: { width: number; depth: number }) {
+function DungeonFloor({ width, depth }: { width: number; depth: number }) {
+  const currentCharacterId = useCharacterStore((s) => s.currentCharacterId)
+
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
+    if (!currentCharacterId) return
+
+    e.stopPropagation()
+    const point = e.point
+
+    const event: GameEvent = {
+      type: 'MOVE_TO',
+      timestamp: performance.now(),
+      entityId: currentCharacterId,
+      target: [point.x, 0, point.z],
+    }
+
+    eventQueue.enqueue(event)
+  }
+
   return (
     <RigidBody type="fixed" colliders="cuboid">
-      <mesh receiveShadow position={[0, -0.5, 0]}>
+      <mesh receiveShadow position={[0, -0.5, 0]} onClick={handleClick}>
         <boxGeometry args={[width, 1, depth]} />
         <meshStandardMaterial color="#2a2a3a" roughness={0.95} />
       </mesh>
@@ -41,6 +64,7 @@ function Floor({ width, depth }: { width: number; depth: number }) {
             key={`tile-${i}-${j}`}
             receiveShadow
             position={[(i - width / 6 + 0.5) * 3, -0.49, (j - depth / 6 + 0.5) * 3]}
+            onClick={handleClick}
           >
             <boxGeometry args={[2.9, 0.02, 2.9]} />
             <meshStandardMaterial color={(i + j) % 2 === 0 ? '#3a3a4a' : '#2a2a3a'} />
@@ -48,6 +72,22 @@ function Floor({ width, depth }: { width: number; depth: number }) {
         ))
       )}
     </RigidBody>
+  )
+}
+
+function Torch({ position }: { position: [number, number, number] }) {
+  return (
+    <group position={position}>
+      <mesh castShadow>
+        <cylinderGeometry args={[0.05, 0.08, 0.4, 8]} />
+        <meshStandardMaterial color="#4a3a2a" roughness={0.9} />
+      </mesh>
+      <mesh position={[0, 0.3, 0]}>
+        <sphereGeometry args={[0.08, 8, 8]} />
+        <meshStandardMaterial color="#ff6600" emissive="#ff4400" emissiveIntensity={2} />
+      </mesh>
+      <pointLight position={[0, 0.3, 0]} intensity={3} distance={12} color="#ff9944" castShadow />
+    </group>
   )
 }
 
@@ -87,9 +127,16 @@ function Room({ config }: { config: RoomConfig }) {
   const wallHeight = 4
   const wallThickness = 0.5
 
+  const torchPositions: [number, number, number][] = [
+    [x - width / 2 + 1.5, 2.5, z - depth / 2 + 1.5],
+    [x + width / 2 - 1.5, 2.5, z - depth / 2 + 1.5],
+    [x - width / 2 + 1.5, 2.5, z + depth / 2 - 1.5],
+    [x + width / 2 - 1.5, 2.5, z + depth / 2 - 1.5],
+  ]
+
   return (
     <group position={[x, 0, z]}>
-      <Floor width={width} depth={depth} />
+      <DungeonFloor width={width} depth={depth} />
 
       <Wall
         position={[0, wallHeight / 2, -depth / 2]}
@@ -115,6 +162,10 @@ function Room({ config }: { config: RoomConfig }) {
         height={wallHeight}
         depth={depth}
       />
+
+      {torchPositions.map((pos, i) => (
+        <Torch key={i} position={pos} />
+      ))}
     </group>
   )
 }
@@ -140,7 +191,7 @@ function Corridor({ from, to }: { from: RoomConfig; to: RoomConfig }) {
     return (
       <group>
         <RigidBody type="fixed" colliders="cuboid">
-          <mesh receiveShadow position={[centerX, -0.5, from.z]}>
+          <mesh receiveShadow position={[centerX, -0.5, from.z]} onClick={() => {}}>
             <boxGeometry args={[corridorLength, 1, corridorWidth]} />
             <meshStandardMaterial color="#2a2a3a" roughness={0.95} />
           </mesh>
@@ -157,7 +208,7 @@ function Corridor({ from, to }: { from: RoomConfig; to: RoomConfig }) {
     return (
       <group>
         <RigidBody type="fixed" colliders="cuboid">
-          <mesh receiveShadow position={[from.x, -0.5, centerZ]}>
+          <mesh receiveShadow position={[from.x, -0.5, centerZ]} onClick={() => {}}>
             <boxGeometry args={[corridorWidth, 1, corridorLength]} />
             <meshStandardMaterial color="#2a2a3a" roughness={0.95} />
           </mesh>
