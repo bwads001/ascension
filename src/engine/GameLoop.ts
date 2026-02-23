@@ -72,6 +72,8 @@ export class GameLoop {
       newEvents = newEvents.concat(systemEvents)
     }
 
+    eventQueue.enqueueMultiple(newEvents)
+
     for (const event of newEvents) {
       eventQueue.emit(event)
     }
