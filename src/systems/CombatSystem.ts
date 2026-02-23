@@ -1,4 +1,4 @@
-import { useCombatStore, useWorldStore } from '../store'
+import { useCombatStore, useDamageNumberStore, useWorldStore } from '../store'
 import type { System, GameEvent, Entity } from '../types'
 import { inRange } from '../utils/math'
 
@@ -128,6 +128,14 @@ export class CombatSystem implements System {
   ): void {
     const target = entities.find((e) => e.id === targetId)
     if (!target?.components.health) return
+
+    const targetPos = target.components.position
+    if (targetPos) {
+      const isPlayerDamage = !!target.components.player
+      useDamageNumberStore
+        .getState()
+        .addDamageNumber(targetPos.x, 1, targetPos.z, amount, isPlayerDamage)
+    }
 
     this.damageSourceMap.set(targetId, sourceId)
 

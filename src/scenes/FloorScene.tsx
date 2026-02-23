@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react'
 
+import DamageNumbers from '../effects/DamageNumbers'
 import { gameLoop } from '../engine/GameLoop'
 import { Player, Monster } from '../entities'
 import { useCharacterStore, useWorldStore } from '../store'
@@ -275,6 +276,7 @@ export default function FloorScene() {
       {monsters.map((monster) => (
         <Monster key={monster.id} id={monster.id} />
       ))}
+      <DamageNumbers />
     </>
   )
 }
