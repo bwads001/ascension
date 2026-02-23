@@ -86,6 +86,22 @@ export default function SkillBar() {
   const playerLevel = currentCharacter?.stats.level ?? 1
   const skillBar = getSkillBar(playerClass, playerLevel)
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      tick(performance.now())
+    }, 100)
+    return () => clearInterval(interval)
+  }, [tick])
+
+  useEffect(() => {
+    const unsubscribe = eventQueue.on('ATTACK_ENTITY', (event: GameEvent) => {
+      if (event.type === 'ATTACK_ENTITY' && event.attackerId === currentCharacterId) {
+        setActiveSkill('basic_attack')
+      }
+    })
+    return unsubscribe
+  }, [currentCharacterId, setActiveSkill])
+
   const activateSkill = useCallback(
     (skillId: string) => {
       if (!currentCharacterId) return
@@ -97,6 +113,10 @@ export default function SkillBar() {
       const cooldownRemaining = getCooldownRemaining(skillId, currentTime)
 
       if (cooldownRemaining > 0) return
+
+      if (skillId === 'basic_attack') {
+        return
+      }
 
       if (!useSkill(skillId, currentTime)) return
 
@@ -139,13 +159,6 @@ export default function SkillBar() {
     },
     [currentCharacterId, entities, getCooldownRemaining, setActiveSkill, useSkill]
   )
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      tick(performance.now())
-    }, 100)
-    return () => clearInterval(interval)
-  }, [tick])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
