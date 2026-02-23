@@ -369,7 +369,16 @@ export class NetworkService {
       class: 'warrior',
       createdAt: Date.now(),
       lastPlayedAt: Date.now(),
-      stats: { level: 1, kills: 0, highestFloor: 0, playTimeMs: 0 },
+      stats: {
+        level: 1,
+        xp: 0,
+        xpToNextLevel: 150,
+        kills: 0,
+        highestFloor: 0,
+        playTimeMs: 0,
+        attributes: { strength: 5, agility: 5, intellect: 5, stamina: 5 },
+        unspentPoints: 0,
+      },
       position: { floor: 0, x: 0, z: 0 },
     }
   }

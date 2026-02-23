@@ -3,7 +3,14 @@ import { useEffect, useMemo } from 'react'
 import { gameLoop } from '../engine/GameLoop'
 import { Player, Monster } from '../entities'
 import { useCharacterStore, useUIStore, useWorldStore } from '../store'
-import { movementSystem, interactionSystem, aiSystem, combatSystem } from '../systems'
+import {
+  movementSystem,
+  interactionSystem,
+  aiSystem,
+  combatSystem,
+  levelingSystem,
+  regenSystem,
+} from '../systems'
 import { PLAYER_DEFAULTS, MONSTER_DEFAULTS } from '../types'
 import type { MonsterType, Entity } from '../types'
 import { Floor, Camera, Wilderness, Town, Well, TowerEntrance } from '../world'
@@ -50,12 +57,16 @@ export default function TownScene() {
     gameLoop.registerSystem(movementSystem)
     gameLoop.registerSystem(aiSystem)
     gameLoop.registerSystem(combatSystem)
+    gameLoop.registerSystem(levelingSystem)
+    gameLoop.registerSystem(regenSystem)
 
     return () => {
       gameLoop.unregisterSystem('InteractionSystem')
       gameLoop.unregisterSystem('MovementSystem')
       gameLoop.unregisterSystem('AISystem')
       gameLoop.unregisterSystem('CombatSystem')
+      gameLoop.unregisterSystem('LevelingSystem')
+      gameLoop.unregisterSystem('RegenSystem')
     }
   }, [])
 
@@ -64,6 +75,21 @@ export default function TownScene() {
 
     const store = useWorldStore.getState()
     if (!store.entities[currentCharacter.id]) {
+      const stats = currentCharacter.stats
+      const maxHealth = 100 + stats.attributes.stamina * 10
+      let baseDamage = 8
+      switch (currentCharacter.class) {
+        case 'warrior':
+          baseDamage += stats.attributes.strength * 2
+          break
+        case 'archer':
+          baseDamage += stats.attributes.agility * 2
+          break
+        case 'mage':
+          baseDamage += stats.attributes.intellect * 2
+          break
+      }
+
       const entity = createEntity({
         type: 'player',
         id: currentCharacter.id,
@@ -76,10 +102,27 @@ export default function TownScene() {
             rotation: 0,
           },
           velocity: { x: 0, y: 0, z: 0 },
+          health: {
+            current: maxHealth,
+            max: maxHealth,
+            dead: false,
+          },
+          combat: {
+            attackRange: 3,
+            attackDamage: baseDamage,
+            attackCooldown: 500,
+            lastAttackTime: 0,
+            targetId: null,
+          },
           player: {
             class: currentCharacter.class,
             name: currentCharacter.name,
-            kills: currentCharacter.stats.kills,
+            kills: stats.kills,
+            level: stats.level,
+            xp: stats.xp,
+            xpToNextLevel: stats.xpToNextLevel,
+            attributes: stats.attributes,
+            unspentPoints: stats.unspentPoints,
           },
         },
       })

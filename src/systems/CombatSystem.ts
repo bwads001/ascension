@@ -21,6 +21,32 @@ function createEntityDiedEvent(entityId: string, killedBy?: string): GameEvent {
   }
 }
 
+function calculatePlayerDamage(entity: Entity): number {
+  const combat = entity.components.combat
+  const player = entity.components.player
+
+  if (!combat) return 8
+
+  let baseDamage = combat.attackDamage
+
+  if (player) {
+    const attrs = player.attributes
+    switch (player.class) {
+      case 'warrior':
+        baseDamage += attrs.strength * 2
+        break
+      case 'archer':
+        baseDamage += attrs.agility * 2
+        break
+      case 'mage':
+        baseDamage += attrs.intellect * 2
+        break
+    }
+  }
+
+  return baseDamage
+}
+
 export class CombatSystem implements System {
   readonly name = 'CombatSystem'
   readonly priority = 20
@@ -79,7 +105,8 @@ export class CombatSystem implements System {
       combat: { ...combat, lastAttackTime: currentTime },
     })
 
-    return createDamageDealtEvent(attackerId, targetId, combat.attackDamage)
+    const damage = calculatePlayerDamage(attacker)
+    return createDamageDealtEvent(attackerId, targetId, damage)
   }
 
   private canAttack(entityId: string, currentTime: number): boolean {

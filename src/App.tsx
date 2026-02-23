@@ -1,15 +1,16 @@
 import { Canvas } from '@react-three/fiber'
 import { Physics } from '@react-three/rapier'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 import { gameLoop } from './engine'
 import { StartScene, TownScene } from './scenes'
 import { useCharacterStore, useUIStore } from './store'
-import { PlayerHUD, DeathScreen } from './ui'
+import { PlayerHUD, DeathScreen, CharacterScreen } from './ui'
 
 export default function App() {
   const { loaded, load } = useCharacterStore()
   const showStartScreen = useUIStore((s) => s.showStartScreen)
+  const [showCharacterScreen, setShowCharacterScreen] = useState(false)
 
   useEffect(() => {
     load()
@@ -19,6 +20,17 @@ export default function App() {
     gameLoop.start()
     return () => gameLoop.stop()
   }, [])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() === 'c' && !showStartScreen) {
+        setShowCharacterScreen((prev) => !prev)
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showStartScreen])
 
   if (!loaded) {
     return (
@@ -45,8 +57,9 @@ export default function App() {
       </Canvas>
       <PlayerHUD />
       <DeathScreen />
+      {showCharacterScreen && <CharacterScreen onClose={() => setShowCharacterScreen(false)} />}
       <div style={styles.hud}>
-        <p>Press ESC to return to start screen</p>
+        <p>ESC: Menu | C: Character</p>
       </div>
     </div>
   )

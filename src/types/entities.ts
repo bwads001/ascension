@@ -42,10 +42,22 @@ export interface AIComponent {
   targetId: string | null
 }
 
+export interface Attributes {
+  strength: number
+  agility: number
+  intellect: number
+  stamina: number
+}
+
 export interface PlayerComponent {
   class: PlayerClass
   name: string
   kills: number
+  level: number
+  xp: number
+  xpToNextLevel: number
+  attributes: Attributes
+  unspentPoints: number
 }
 
 export interface MonsterComponent {
@@ -91,15 +103,43 @@ export interface EntityFactoryConfig {
   components: Partial<ComponentMap>
 }
 
+export function getXpRequiredForLevel(level: number): number {
+  return Math.floor(100 * Math.pow(1.5, level - 1))
+}
+
+export function getXpFromMonster(monsterType: MonsterType): number {
+  const xpValues: Record<MonsterType, number> = {
+    slime: 15,
+    rat: 12,
+    skeleton: 30,
+  }
+  return xpValues[monsterType]
+}
+
 export const PLAYER_DEFAULTS: Partial<ComponentMap> = {
   position: { x: 0, y: 0, z: 0, rotation: 0 },
-  health: { current: 150, max: 150, dead: false },
+  health: { current: 100, max: 100, dead: false },
   combat: {
     attackRange: 3,
-    attackDamage: 10,
+    attackDamage: 8,
     attackCooldown: 500,
     lastAttackTime: 0,
     targetId: null,
+  },
+  player: {
+    class: 'warrior',
+    name: '',
+    kills: 0,
+    level: 1,
+    xp: 0,
+    xpToNextLevel: getXpRequiredForLevel(2),
+    attributes: {
+      strength: 5,
+      agility: 5,
+      intellect: 5,
+      stamina: 5,
+    },
+    unspentPoints: 0,
   },
   render: { visible: true, highlighted: false, opacity: 1 },
 }

@@ -1,10 +1,14 @@
-import type { PlayerClass } from './entities'
+import type { PlayerClass, Attributes } from './entities'
 
 export interface CharacterStats {
   level: number
+  xp: number
+  xpToNextLevel: number
   kills: number
   highestFloor: number
   playTimeMs: number
+  attributes: Attributes
+  unspentPoints: number
 }
 
 export interface CharacterPosition {
@@ -62,9 +66,18 @@ export function createNewCharacter(name: string, playerClass: PlayerClass): Char
     lastPlayedAt: Date.now(),
     stats: {
       level: 1,
+      xp: 0,
+      xpToNextLevel: 150,
       kills: 0,
       highestFloor: 0,
       playTimeMs: 0,
+      attributes: {
+        strength: 5,
+        agility: 5,
+        intellect: 5,
+        stamina: 5,
+      },
+      unspentPoints: 0,
     },
     position: {
       floor: 0,
