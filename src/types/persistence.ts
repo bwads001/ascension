@@ -46,7 +46,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   fullscreen: false,
 }
 
-export const SAVE_VERSION = 1
+export const SAVE_VERSION = 2
 
 export function createDefaultSaveData(): SaveData {
   return {

@@ -44,7 +44,8 @@ export class AISystem implements System {
       if (player && player.components.position) {
         const playerPos = player.components.position
 
-        if (isInTown(playerPos.x, playerPos.z)) {
+        const inDungeon = store.floor > 0
+        if (!inDungeon && isInTown(playerPos.x, playerPos.z)) {
           this.updateWander(entity, currentTime, emittedEvents, store)
           continue
         }

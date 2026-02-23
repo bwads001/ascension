@@ -16,13 +16,14 @@ function getDerivedStats(player: PlayerComponent | undefined) {
 
   const baseHealth = 100
   const baseDamage = 8
+  const attrs = player.attributes ?? { strength: 5, agility: 5, intellect: 5, stamina: 5 }
 
   return {
-    maxHealth: baseHealth + player.attributes.stamina * 10,
-    meleeDamage: baseDamage + player.attributes.strength * 2,
-    rangedDamage: baseDamage + player.attributes.agility * 2,
-    spellDamage: baseDamage + player.attributes.intellect * 2,
-    hpRegen: player.attributes.stamina,
+    maxHealth: baseHealth + attrs.stamina * 10,
+    meleeDamage: baseDamage + attrs.strength * 2,
+    rangedDamage: baseDamage + attrs.agility * 2,
+    spellDamage: baseDamage + attrs.intellect * 2,
+    hpRegen: attrs.stamina,
   }
 }
 
@@ -38,17 +39,19 @@ export default function CharacterScreen({ onClose }: CharacterScreenProps) {
   if (!player) return null
 
   const stats = getDerivedStats(player)
+  const attrs = player.attributes ?? { strength: 5, agility: 5, intellect: 5, stamina: 5 }
 
   const handleAddAttribute = (attr: AttributeKey) => {
-    if (player.unspentPoints <= 0) return
+    if ((player.unspentPoints ?? 0) <= 0) return
 
     const store = useWorldStore.getState()
     const currentEntity = store.entities[currentCharacterId!]
     if (!currentEntity?.components.player) return
 
+    const currentAttrs = player.attributes ?? { strength: 5, agility: 5, intellect: 5, stamina: 5 }
     const newAttributes = {
-      ...player.attributes,
-      [attr]: player.attributes[attr] + 1,
+      ...currentAttrs,
+      [attr]: (currentAttrs[attr] ?? 5) + 1,
     }
 
     const newStats = getDerivedStats({ ...player, attributes: newAttributes })
@@ -57,7 +60,7 @@ export default function CharacterScreen({ onClose }: CharacterScreenProps) {
       player: {
         ...player,
         attributes: newAttributes,
-        unspentPoints: player.unspentPoints - 1,
+        unspentPoints: (player.unspentPoints ?? 0) - 1,
       },
       health: currentEntity.components.health
         ? {
@@ -95,9 +98,10 @@ export default function CharacterScreen({ onClose }: CharacterScreenProps) {
           </div>
         </div>
 
-        {player.unspentPoints > 0 && (
+        {(player.unspentPoints ?? 0) > 0 && (
           <div style={styles.unspentBanner}>
-            {player.unspentPoints} attribute point{player.unspentPoints > 1 ? 's' : ''} available!
+            {player.unspentPoints} attribute point{(player.unspentPoints ?? 0) > 1 ? 's' : ''}{' '}
+            available!
           </div>
         )}
 
@@ -113,8 +117,8 @@ export default function CharacterScreen({ onClose }: CharacterScreenProps) {
                 </div>
               </div>
               <div style={styles.attrValue}>
-                <span style={styles.attrNumber}>{player.attributes[attr]}</span>
-                {player.unspentPoints > 0 && (
+                <span style={styles.attrNumber}>{attrs[attr] ?? 5}</span>
+                {(player.unspentPoints ?? 0) > 0 && (
                   <button style={styles.addButton} onClick={() => handleAddAttribute(attr)}>
                     +
                   </button>

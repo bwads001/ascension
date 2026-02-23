@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react'
 
 import { gameLoop } from '../engine/GameLoop'
 import { Player, Monster } from '../entities'
-import { useCharacterStore, useUIStore, useWorldStore } from '../store'
+import { useCharacterStore, useWorldStore } from '../store'
 import {
   movementSystem,
   interactionSystem,
@@ -12,24 +12,14 @@ import {
   regenSystem,
 } from '../systems'
 import { PLAYER_DEFAULTS, MONSTER_DEFAULTS } from '../types'
-import type { MonsterType, Entity } from '../types'
-import { Floor, Camera, Wilderness, Town, Well, TowerEntrance } from '../world'
+import type { Entity, MonsterType } from '../types'
+import Camera from '../world/Camera'
+import FloorDungeon, { generateDungeon } from '../world/FloorDungeon'
 
-const MONSTER_SPAWNS: Array<{ type: MonsterType; position: [number, number, number] }> = [
-  { type: 'slime', position: [15, 0, 5] },
-  { type: 'slime', position: [-15, 0, 8] },
-  { type: 'slime', position: [10, 0, -18] },
-  { type: 'rat', position: [18, 0, -10] },
-  { type: 'rat', position: [-12, 0, -15] },
-  { type: 'skeleton', position: [-18, 0, 0] },
-  { type: 'skeleton', position: [8, 0, 20] },
-  { type: 'skeleton', position: [-5, 0, 18] },
-  { type: 'slime', position: [70, 0, 5] },
-  { type: 'slime', position: [65, 0, -10] },
-  { type: 'rat', position: [75, 0, 0] },
-  { type: 'rat', position: [68, 0, 12] },
-  { type: 'skeleton', position: [78, 0, -8] },
-]
+interface FloorMonsterSpawn {
+  type: MonsterType
+  position: [number, number, number]
+}
 
 function createEntity(config: {
   type: Entity['type']
@@ -46,11 +36,66 @@ function createEntity(config: {
   }
 }
 
-export default function TownScene() {
+function generateMonsterSpawns(
+  floor: number,
+  rooms: ReturnType<typeof generateDungeon>
+): FloorMonsterSpawn[] {
+  const spawns: FloorMonsterSpawn[] = []
+
+  const monsterTypes: MonsterType[] = ['slime', 'rat', 'skeleton']
+  const monstersPerRoom = 2 + Math.floor(floor / 2)
+
+  rooms.forEach((room, roomIndex) => {
+    const numMonsters = roomIndex === rooms.length - 1 ? 0 : monstersPerRoom
+
+    for (let i = 0; i < numMonsters; i++) {
+      const typeIndex = Math.min(floor - 1, monsterTypes.length - 1)
+      const type =
+        Math.random() < 0.7
+          ? monsterTypes[typeIndex]
+          : monsterTypes[Math.floor(Math.random() * typeIndex + 1)]
+
+      const offsetX = (Math.random() - 0.5) * (room.width - 4)
+      const offsetZ = (Math.random() - 0.5) * (room.depth - 4)
+
+      spawns.push({
+        type,
+        position: [room.x + offsetX, 0, room.z + offsetZ],
+      })
+    }
+  })
+
+  return spawns
+}
+
+function getFloorMonsterStats(floor: number, type: MonsterType) {
+  const baseStats = MONSTER_DEFAULTS[type]
+  const scaling = 1 + (floor - 1) * 0.3
+
+  return {
+    health: {
+      current: Math.floor((baseStats.health?.current ?? 30) * scaling),
+      max: Math.floor((baseStats.health?.max ?? 30) * scaling),
+      dead: false,
+    },
+    combat: baseStats.combat
+      ? {
+          ...baseStats.combat,
+          attackDamage: Math.floor(baseStats.combat.attackDamage * scaling),
+        }
+      : undefined,
+  }
+}
+
+export default function FloorScene() {
   const currentCharacter = useCharacterStore((s) => s.getCurrentCharacter())
   const currentCharacterId = useCharacterStore((s) => s.currentCharacterId)
-  const setShowStartScreen = useUIStore((s) => s.setShowStartScreen)
+  const floor = useWorldStore((s) => s.floor)
+  const setFloor = useWorldStore((s) => s.setFloor)
   const worldEntities = useWorldStore((s) => s.entities)
+
+  const rooms = useMemo(() => generateDungeon(floor), [floor])
+  const monsterSpawns = useMemo(() => generateMonsterSpawns(floor, rooms), [floor, rooms])
 
   useEffect(() => {
     gameLoop.registerSystem(interactionSystem)
@@ -75,6 +120,7 @@ export default function TownScene() {
 
     const store = useWorldStore.getState()
     if (!store.entities[currentCharacter.id]) {
+      const firstRoom = rooms[0]
       const stats = currentCharacter.stats
       const attrs = stats.attributes ?? { strength: 5, agility: 5, intellect: 5, stamina: 5 }
       const maxHealth = 100 + attrs.stamina * 10
@@ -97,9 +143,9 @@ export default function TownScene() {
         components: {
           ...PLAYER_DEFAULTS,
           position: {
-            x: currentCharacter.position.x,
+            x: firstRoom.x,
             y: 0,
-            z: currentCharacter.position.z,
+            z: firstRoom.z,
             rotation: 0,
           },
           velocity: { x: 0, y: 0, z: 0 },
@@ -130,22 +176,25 @@ export default function TownScene() {
 
       store.setEntity(entity)
     }
-  }, [currentCharacter])
+  }, [currentCharacter, rooms])
 
   useEffect(() => {
     const store = useWorldStore.getState()
 
-    for (const spawn of MONSTER_SPAWNS) {
-      const monsterDefaults = MONSTER_DEFAULTS[spawn.type]
-      const id = `monster_${spawn.type}_${spawn.position[0]}_${spawn.position[2]}`
+    for (const spawn of monsterSpawns) {
+      const id = `floor${floor}_${spawn.type}_${Math.round(spawn.position[0])}_${Math.round(spawn.position[2])}`
 
       if (store.entities[id]) continue
+
+      const monsterDefaults = MONSTER_DEFAULTS[spawn.type]
+      const scaledStats = getFloorMonsterStats(floor, spawn.type)
 
       const entity = createEntity({
         type: 'monster',
         id,
         components: {
           ...monsterDefaults,
+          ...scaledStats,
           position: {
             x: spawn.position[0],
             y: spawn.position[1],
@@ -157,28 +206,34 @@ export default function TownScene() {
             ...monsterDefaults.ai!,
             homePosition: [spawn.position[0], spawn.position[1], spawn.position[2]],
             wanderTarget: [spawn.position[0], spawn.position[1], spawn.position[2]],
+            lastWanderTime: 0,
+            targetId: null,
           },
         },
       })
 
       store.setEntity(entity)
     }
-  }, [])
+  }, [floor, monsterSpawns])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setShowStartScreen(true)
+        setFloor(0)
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [setShowStartScreen])
+  }, [setFloor])
 
   const monsters = useMemo(() => {
     return Object.values(worldEntities).filter((e) => e.type === 'monster')
   }, [worldEntities])
+
+  const handleExit = () => {
+    setFloor(0)
+  }
 
   if (!currentCharacter || !currentCharacterId) {
     return null
@@ -187,16 +242,10 @@ export default function TownScene() {
   return (
     <>
       <Camera />
-      <ambientLight intensity={0.5} />
-      <directionalLight position={[10, 10, 5]} intensity={1} castShadow />
+      <ambientLight intensity={0.4} />
+      <pointLight position={[0, 10, 0]} intensity={0.8} castShadow distance={30} />
 
-      <Floor />
-      <Wilderness />
-
-      <Town />
-      <Well position={[-2, 0, 4]} />
-
-      <TowerEntrance position={[0, 0, 38]} />
+      <FloorDungeon floor={floor} onExit={handleExit} />
 
       <Player />
       {monsters.map((monster) => (

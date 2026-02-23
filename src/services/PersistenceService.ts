@@ -105,9 +105,31 @@ export class PersistenceService {
     console.log(`Migrating save data from version ${data.version} to ${SAVE_VERSION}`)
 
     const migrated = createDefaultSaveData()
-    migrated.characters = data.characters ?? []
     migrated.settings = { ...migrated.settings, ...data.settings }
     migrated.lastCharacterId = data.lastCharacterId ?? null
+
+    migrated.characters = (data.characters ?? []).map((char) => {
+      const stats = char.stats
+
+      return {
+        ...char,
+        stats: {
+          level: stats.level ?? 1,
+          xp: stats.xp ?? 0,
+          xpToNextLevel: stats.xpToNextLevel ?? 150,
+          kills: stats.kills ?? 0,
+          highestFloor: stats.highestFloor ?? 0,
+          playTimeMs: stats.playTimeMs ?? 0,
+          attributes: stats.attributes ?? {
+            strength: 5,
+            agility: 5,
+            intellect: 5,
+            stamina: 5,
+          },
+          unspentPoints: stats.unspentPoints ?? 0,
+        },
+      }
+    })
 
     return migrated
   }

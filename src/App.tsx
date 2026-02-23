@@ -3,13 +3,14 @@ import { Physics } from '@react-three/rapier'
 import { useEffect, useState } from 'react'
 
 import { gameLoop } from './engine'
-import { StartScene, TownScene } from './scenes'
-import { useCharacterStore, useUIStore } from './store'
+import { StartScene, TownScene, FloorScene } from './scenes'
+import { useCharacterStore, useUIStore, useWorldStore } from './store'
 import { PlayerHUD, DeathScreen, CharacterScreen } from './ui'
 
 export default function App() {
   const { loaded, load } = useCharacterStore()
   const showStartScreen = useUIStore((s) => s.showStartScreen)
+  const floor = useWorldStore((s) => s.floor)
   const [showCharacterScreen, setShowCharacterScreen] = useState(false)
 
   useEffect(() => {
@@ -44,6 +45,8 @@ export default function App() {
     return <StartScene />
   }
 
+  const GameScene = floor > 0 ? FloorScene : TownScene
+
   return (
     <div style={styles.container}>
       <Canvas
@@ -52,14 +55,14 @@ export default function App() {
         style={{ background: '#1a1a2e' }}
       >
         <Physics>
-          <TownScene />
+          <GameScene key={floor} />
         </Physics>
       </Canvas>
       <PlayerHUD />
       <DeathScreen />
       {showCharacterScreen && <CharacterScreen onClose={() => setShowCharacterScreen(false)} />}
       <div style={styles.hud}>
-        <p>ESC: Menu | C: Character</p>
+        <p>ESC: {floor > 0 ? 'Return to Town' : 'Menu'} | C: Character</p>
       </div>
     </div>
   )
