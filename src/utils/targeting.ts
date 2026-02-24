@@ -2,7 +2,7 @@ import type { Entity } from '../types'
 import { distanceXZ, isInFrontCone } from './math'
 
 const TARGETING_RANGE = 6
-const TARGETING_CONE_ANGLE = Math.PI * 0.75
+const TARGETING_CONE_ANGLE = Math.PI
 
 export function findTargetInFront(
   attacker: Entity,

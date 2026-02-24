@@ -6,6 +6,7 @@ import { findTargetInFront } from '../utils/targeting'
 
 const INTERACT_RANGE = 2
 const AUTO_ATTACK_RANGE = 3.5
+const AUTO_ATTACK_CONE = Math.PI
 
 interface PendingInteraction {
   type: 'heal' | 'tower' | 'portal'
@@ -63,7 +64,7 @@ export class InteractionSystem implements System {
       const combat = entity.components.combat
       if (!combat?.autoAttackEnabled) continue
 
-      const target = findTargetInFront(entity, entities, AUTO_ATTACK_RANGE)
+      const target = findTargetInFront(entity, entities, AUTO_ATTACK_RANGE, AUTO_ATTACK_CONE)
       if (target) {
         if (!this.canAttack(entity.id, currentTime)) continue
         emittedEvents.push(createAttackEvent(entity.id, target.id))

@@ -177,9 +177,9 @@ export default function Player({ playerClass = 'warrior' }: PlayerProps) {
     return (
       <RigidBody
         position={[position.x, position.y, position.z]}
+        rotation={[0, -position.rotation, 0]}
         colliders={false}
         type="kinematicPosition"
-        lockRotations
       >
         <CuboidCollider args={[0.4, 1, 0.4]} position={[0, 1, 0]} />
         <pointLight position={[0, 2, 0]} intensity={5} distance={12} color="#ffe4c4" />
@@ -190,9 +190,9 @@ export default function Player({ playerClass = 'warrior' }: PlayerProps) {
   return (
     <RigidBody
       position={[position.x + shake, position.y, position.z]}
+      rotation={[0, -position.rotation, 0]}
       colliders={false}
       type="kinematicPosition"
-      lockRotations
     >
       <CuboidCollider args={[0.4, 1, 0.4]} position={[0, 1, 0]} />
       <group scale={isAttacking ? 1.1 : 1}>
