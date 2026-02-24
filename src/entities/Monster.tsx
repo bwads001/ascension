@@ -215,6 +215,12 @@ export default function Monster({ id }: MonsterProps) {
     const player = playerEntries[0]
     if (player.components.health?.dead) return
 
+    if (player.components.combat) {
+      state.updateEntity(player.id, {
+        combat: { ...player.components.combat, autoAttackEnabled: true },
+      })
+    }
+
     const event: GameEvent = {
       type: 'MOVE_TO',
       timestamp: performance.now(),

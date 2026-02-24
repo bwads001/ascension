@@ -111,6 +111,14 @@ function DungeonFloor({ width, depth }: { width: number; depth: number }) {
     e.stopPropagation()
     const point = e.point
 
+    const store = useWorldStore.getState()
+    const entity = store.entities[currentCharacterId]
+    if (entity?.components.combat?.autoAttackEnabled) {
+      store.updateEntity(currentCharacterId, {
+        combat: { ...entity.components.combat, autoAttackEnabled: false },
+      })
+    }
+
     const event: GameEvent = {
       type: 'MOVE_TO',
       timestamp: performance.now(),

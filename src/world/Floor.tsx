@@ -2,7 +2,7 @@ import type { ThreeEvent } from '@react-three/fiber'
 import { RigidBody } from '@react-three/rapier'
 
 import { eventQueue } from '../engine/EventQueue'
-import { useCharacterStore } from '../store'
+import { useCharacterStore, useWorldStore } from '../store'
 import type { GameEvent } from '../types'
 
 interface FloorProps {
@@ -17,6 +17,14 @@ export default function Floor({ onContextMenu }: FloorProps) {
 
     e.stopPropagation()
     const point = e.point
+
+    const store = useWorldStore.getState()
+    const entity = store.entities[currentCharacterId]
+    if (entity?.components.combat?.autoAttackEnabled) {
+      store.updateEntity(currentCharacterId, {
+        combat: { ...entity.components.combat, autoAttackEnabled: false },
+      })
+    }
 
     const event: GameEvent = {
       type: 'MOVE_TO',
