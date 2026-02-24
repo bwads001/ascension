@@ -175,6 +175,7 @@ export default function FloorScene() {
             attackCooldown: 500,
             lastAttackTime: 0,
             targetId: null,
+            autoAttackEnabled: false,
           },
           player: {
             class: currentCharacter.class,

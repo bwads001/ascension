@@ -60,6 +60,9 @@ export class InteractionSystem implements System {
         continue
       }
 
+      const combat = entity.components.combat
+      if (!combat?.autoAttackEnabled) continue
+
       const target = findTargetInFront(entity, entities, AUTO_ATTACK_RANGE)
       if (target) {
         if (!this.canAttack(entity.id, currentTime)) continue

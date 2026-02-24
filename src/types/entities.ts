@@ -31,6 +31,7 @@ export interface CombatComponent {
   attackCooldown: number
   lastAttackTime: number
   targetId: string | null
+  autoAttackEnabled: boolean
 }
 
 export interface AIComponent {
@@ -125,6 +126,7 @@ export const PLAYER_DEFAULTS: Partial<ComponentMap> = {
     attackCooldown: 500,
     lastAttackTime: 0,
     targetId: null,
+    autoAttackEnabled: false,
   },
   player: {
     class: 'warrior',
@@ -153,6 +155,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       attackCooldown: 1000,
       lastAttackTime: 0,
       targetId: null,
+      autoAttackEnabled: false,
     },
     ai: {
       behavior: 'wander',
@@ -173,6 +176,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       attackCooldown: 800,
       lastAttackTime: 0,
       targetId: null,
+      autoAttackEnabled: false,
     },
     ai: {
       behavior: 'wander',
@@ -193,6 +197,7 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       attackCooldown: 1200,
       lastAttackTime: 0,
       targetId: null,
+      autoAttackEnabled: false,
     },
     ai: {
       behavior: 'wander',

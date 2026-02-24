@@ -7,6 +7,7 @@ export type GameEventType =
   | 'ATTACK_ENTITY'
   | 'USE_SKILL'
   | 'SKILL_UNLOCKED'
+  | 'TOGGLE_AUTO_ATTACK'
   | 'DAMAGE_DEALT'
   | 'ENTITY_DIED'
   | 'ENTITY_SPAWNED'
