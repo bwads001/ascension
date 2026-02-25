@@ -4,66 +4,130 @@ Ascension: The Lost Archives - A tower-climbing ARPG
 
 ## Overview
 
-Players create a character, fight monsters in the wilderness, and climb the tower floor by floor. Each floor increases in difficulty with stronger monsters and better rewards.
+Players create a character, fight monsters in town wilderness or tower dungeons, level up, unlock skills, and climb the tower floor by floor. Each floor increases in difficulty with stronger monsters.
 
 ## Core Loop
 
 ```
-Town (hub) → Wilderness (grind) → Tower (challenge) → Town
-     ↑                                  │
-     └────────── Death/Complete ←───────┘
+Town (hub) → Kill Monsters → Level Up → Tower (challenge) → Return to Town
+     ↑                                         │
+     └────────── Death/Complete ←─────────────┘
 ```
 
 1. **Town** - Safe zone, heal at well, prepare for adventure
-2. **Wilderness** - Hunt monsters, gain kills, level up
-3. **Tower** - Procedural floors with increasing difficulty
-4. **Return** - Respawn in town on death, return with loot on completion
+2. **Wilderness** - Hunt monsters around town, gain XP
+3. **Tower** - Procedural dungeon floors with rooms, corridors, monsters
+4. **Return** - Exit portal returns to town
 
 ## Controls
 
-- **Click ground** - Move to location
-- **Click monster** - Approach and attack
-- **Click well** - Heal to full
-- **Click tower entrance** - Enter tower (requires 5 kills)
-- **ESC** - Return to start screen
+| Action | Input |
+| ------ | ----- |
+| Move | Click on ground/floor |
+| Attack monster | Click monster (enables auto-attack, moves to range) |
+| Toggle auto-attack | Press `1` |
+| Use skills | Press `2-0` |
+| Character screen | Press `C` |
+| Heal | Click well |
+| Enter tower | Click tower entrance (requires 5 kills) |
+| Exit dungeon | Click exit portal |
+
+See [CONTROLS.md](CONTROLS.md) for full reference.
 
 ## Classes
 
-| Class   | Description            | Planned Special    |
-| ------- | ---------------------- | ------------------ |
-| Warrior | Balanced melee fighter | Shield bash (stun) |
-| Archer  | Fast ranged attacker   | Multi-shot         |
-| Mage    | Slow but powerful      | Fireball (AoE)     |
-
-Current: All classes use same stats. Future: Class-specific abilities.
+| Class | Primary Stat | Specialization |
+| ----- | ------------ | -------------- |
+| Warrior | Strength | Melee damage, AoE, buffs |
+| Archer | Agility | Ranged damage, multi-target, evasion |
+| Mage | Intellect | Spell damage, AoE, healing |
 
 ## Combat
 
-### Player Stats
+### Auto-Attack System
 
-| Stat            | Value |
-| --------------- | ----- |
-| Health          | 150   |
-| Damage          | 10    |
-| Attack Range    | 3     |
-| Attack Cooldown | 500ms |
+- **Toggle**: Press '1' or click monster to enable
+- **Range**: 3.5 units
+- **Cone**: 180° front arc
+- **Behavior**: Automatically attacks nearest enemy in cone when cooldown ready
+- **Disable**: Click floor or interactable
 
-### Monster Stats
+### Attack Cooldowns
 
-| Monster  | Health | Damage | Speed | Aggro Range | Kills Needed |
-| -------- | ------ | ------ | ----- | ----------- | ------------ |
-| Slime    | 38     | 10     | 1     | 8           | 1            |
-| Rat      | 23     | 8      | 2     | 10          | 1            |
-| Skeleton | 75     | 15     | 1.5   | 12          | 2            |
+| Entity | Cooldown |
+| ------ | -------- |
+| Player | 500ms |
+| Slime | 1000ms |
+| Rat | 800ms |
+| Skeleton | 1200ms |
 
-### Mechanics
+### Damage Calculation
 
-- **Aggro**: Monsters chase when player enters aggro range (outside town)
-- **Speed boost**: Monsters move 1.3x faster when chasing
-- **Town safe zone**: Monsters cannot enter town radius (12 units)
-- **Cooldowns**: Attacks have cooldowns, tracked per-entity
+```typescript
+baseDamage = 8 + (primaryStat * 2)
+finalDamage = baseDamage * skillDamageMultiplier
+```
+
+### Floating Damage Numbers
+
+- Yellow: Damage to monsters
+- Red: Damage to player
+- Size scales with damage amount
+
+## Progression
+
+### Experience
+
+| Monster | XP |
+| ------- | -- |
+| Slime | 15 |
+| Rat | 12 |
+| Skeleton | 30 |
+
+### Level Up
+
+- XP threshold: `floor(150 * 1.5^(level-1))`
+- Grants: +3 attribute points
+- Skill unlocks at levels 2, 4, 6
+
+### Skills
+
+**Warrior:**
+| Level | Skill | Type | Cooldown |
+| ----- | ----- | ---- | -------- |
+| 1 | Attack | Enemy | 0 |
+| 2 | Power Strike | Enemy | 5s |
+| 4 | Whirlwind | AoE 4u | 8s |
+| 6 | Battle Cry | Self | 20s |
+
+**Archer:**
+| Level | Skill | Type | Cooldown |
+| ----- | ----- | ---- | -------- |
+| 1 | Attack | Enemy | 0 |
+| 2 | Aimed Shot | Enemy | 4s |
+| 4 | Multi Shot | AoE 8u | 7s |
+| 6 | Evasion | Self | 15s |
+
+**Mage:**
+| Level | Skill | Type | Cooldown |
+| ----- | ----- | ---- | -------- |
+| 1 | Attack | Enemy | 0 |
+| 2 | Fireball | Enemy | 4s |
+| 4 | Frost Nova | AoE 5u | 8s |
+| 6 | Heal | Self | 15s |
+
+### Attributes
+
+| Attribute | Effect per Point |
+| --------- | ---------------- |
+| Strength | +2 melee damage (Warrior) |
+| Agility | +2 ranged damage (Archer) |
+| Intellect | +2 spell damage (Mage) |
+| Stamina | +10 max HP, +1 HP regen/30s |
 
 ## World Layout
+
+### Town
 
 ```
          [Tower Entrance] (0, 38)
@@ -78,42 +142,33 @@ Current: All classes use same stats. Future: Class-specific abilities.
     │            Well              │
     └───────────────────────────────┘
          │                    │
-    [Western Field]      [Eastern Field] ← Monsters spawn here
+    [Western Field]      [Eastern Field]
     (monsters)           (monsters)
 ```
 
-### Zones
+### Tower Dungeons
 
-| Zone           | Description                | Monsters                      |
-| -------------- | -------------------------- | ----------------------------- |
-| Town           | Safe zone, buildings, well | None                          |
-| Northern Field | Path to tower              | 3 slimes, 2 rats, 3 skeletons |
-| Western Field  | Wilderness                 | 2 slimes, 1 rat, 1 skeleton   |
-| Eastern Field  | Secondary hunting ground   | 2 slimes, 2 rats, 1 skeleton  |
+- **Rooms**: 5 + floor * 2 per floor
+- **Layout**: Sequential rooms connected by corridors
+- **Monsters**: 1-2 per room, scaled by floor
+- **Lighting**: Torches in corners and corridors
+- **Exit**: Portal in final room
 
-## Progression
+### Monster Scaling
 
-### Current
+Per floor multiplier: `1 + (floor - 1) * 0.3`
 
-- Kills tracked per character
-- 5 kills required to enter tower
-- Tower floor 1+ not yet implemented
+| Floor | HP Mult | Damage Mult |
+| ----- | ------- | ----------- |
+| 1 | 1.0x | 1.0x |
+| 2 | 1.3x | 1.3x |
+| 3 | 1.6x | 1.6x |
+| 5 | 2.2x | 2.2x |
+| 10 | 3.7x | 3.7x |
 
-### Planned
+### Monster Leash
 
-```
-Level 1-5:   Town + Wilderness (current content)
-Level 6-10:  Tower floors 1-5
-Level 11-15: Tower floors 6-10 (harder monsters)
-Level 16+:   Boss floors
-```
-
-### Experience Formula (Planned)
-
-```typescript
-xpRequired = Math.floor(100 * Math.pow(1.5, level - 1))
-xpFromKill = monsterHealth / 2
-```
+Monsters return to spawn point if they chase 20+ units away.
 
 ## Persistence
 
@@ -126,13 +181,19 @@ interface CharacterSave {
   class: 'warrior' | 'archer' | 'mage'
   stats: {
     level: number
+    xp: number
+    xpToNextLevel: number
     kills: number
     highestFloor: number
     playTimeMs: number
+    attributes: { strength: number; agility: number; intellect: number; stamina: number }
+    unspentPoints: number
   }
-  position: { x: number; z: number }
+  position: { floor: number; x: number; z: number }
 }
 ```
+
+Save migration handles older versions without attributes.
 
 ## Multiplayer
 
@@ -141,22 +202,19 @@ interface CharacterSave {
 - Host authority for combat/AI
 - Client prediction for movement
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for networking details.
+See [signaling/README.md](../signaling/README.md) for setup.
 
 ## Future Features
 
 ### Short Term
 
-- [ ] Tower floor generation (procedural rooms)
-- [ ] Floor-based monster scaling
-- [ ] Experience and leveling
-- [ ] Class-specific abilities
-- [ ] Equipment/items
-- [ ] Boss fights
+- [ ] Equipment system (weapons, armor)
+- [ ] Consumables (health potions)
+- [ ] More monster types
+- [ ] Boss fights every 5 floors
 
 ### Medium Term
 
-- [ ] Skill trees
 - [ ] Loot drops
 - [ ] Town NPCs (merchant, blacksmith)
 - [ ] Quest system
@@ -164,58 +222,46 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for networking details.
 
 ### Long Term
 
+- [ ] Skill trees
 - [ ] Persistent world
 - [ ] Guild system
 - [ ] PvP arena
 - [ ] Seasonal events
-- [ ] Mobile support
 
 ## Balance Notes
 
-### Current Balance (v1)
-
-- Player kills slime in ~4 hits
-- Slime kills player in ~15 hits
-- Combat feels tactical, not spammy
-- Monsters wander slowly (5s interval)
-
-### Design Philosophy
+### Current Philosophy
 
 1. **Deliberate combat** - Attacks have weight, cooldowns matter
-2. **Risk/reward** - Venture further for more kills, but danger increases
-3. **Town as sanctuary** - Always have a safe place to retreat
-4. **Progression feel** - Each kill matters, tower entry is earned
+2. **Positioning matters** - 180° cone requires facing enemies
+3. **Risk/reward** - Higher floors = better XP but more danger
+4. **Progression feel** - Each level unlocks tangible power
+
+### Target Balance
+
+- Player kills slime in ~4 hits (early floors)
+- Slime kills player in ~15 hits
+- Level 2 achievable after ~10 kills
+- First skill unlock feels impactful
 
 ## Content Pipeline
 
 ### Adding New Monsters
 
-1. Define in `types/entities.ts`:
+1. Define stats in `types/entities.ts` MONSTER_DEFAULTS
+2. Add 3D model in `entities/Monster.tsx`
+3. Add XP value in `systems/LevelingSystem.ts`
+4. Add spawn points in scene
 
-```typescript
-export const MONSTER_DEFAULTS = {
-  goblin: {
-    health: { current: 50, max: 50, dead: false },
-    combat: { attackRange: 1.5, attackDamage: 12, attackCooldown: 800 },
-    ai: { behavior: 'wander', aggroRange: 10 },
-    monster: { type: 'goblin', speed: 2.5 },
-  },
-}
-```
+### Adding New Skills
 
-2. Create mesh in `entities/Monster.tsx`
-3. Add spawn points in `scenes/TownScene.tsx`
-
-### Adding New Zones
-
-1. Extend `world/Floor.tsx` with new floor mesh
-2. Add decorations in `world/Wilderness.tsx`
-3. Add monster spawns in `scenes/TownScene.tsx`
-4. Connect with paths
+1. Define in `types/skills.ts`
+2. Add to CLASS_SKILL_BARS
+3. Handle special logic in `systems/SkillSystem.ts` if needed
 
 ### Adding New Floors
 
-1. Create `scenes/FloorScene.tsx`
-2. Implement procedural generation
-3. Add floor transition trigger
-4. Scale monster stats by floor number
+Floors are auto-generated. To add variety:
+1. Add room size variations in `generateDungeon()`
+2. Add new monster types to spawn pool
+3. Adjust scaling in `FloorScene.tsx`
