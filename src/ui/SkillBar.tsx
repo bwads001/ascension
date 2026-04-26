@@ -84,7 +84,8 @@ export default function SkillBar() {
   const tick = useSkillStore((s) => s.tick)
 
   const playerClass = currentCharacter?.class ?? 'warrior'
-  const playerLevel = currentCharacter?.stats.level ?? 1
+  const playerEntity = currentCharacterId ? entities[currentCharacterId] : undefined
+  const playerLevel = playerEntity?.components.player?.level ?? currentCharacter?.stats.level ?? 1
   const skillBar = getSkillBar(playerClass, playerLevel)
 
   useEffect(() => {

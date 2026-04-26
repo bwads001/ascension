@@ -11,6 +11,8 @@ export default function DeathScreen() {
 
   const handleRespawn = () => {
     const worldStore = useWorldStore.getState()
+    const current = worldStore.entities[currentCharacterId!]
+    const combat = current?.components.combat
 
     worldStore.updateEntity(currentCharacterId!, {
       health: {
@@ -24,6 +26,8 @@ export default function DeathScreen() {
         z: 0,
         rotation: 0,
       },
+      destination: { x: 0, y: 0, z: 0 },
+      ...(combat ? { combat: { ...combat, targetId: null } } : {}),
     })
   }
 

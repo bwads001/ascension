@@ -144,15 +144,22 @@ export class CombatSystem implements System {
     const newHealth = Math.max(0, health.current - amount)
 
     const store = useWorldStore.getState()
+    const isDying = newHealth <= 0 && !health.dead
     store.updateEntity(targetId, {
       health: {
         ...health,
         current: newHealth,
         dead: newHealth <= 0,
       },
+      // On death: clear pursuit target and movement destination so a respawn
+      // (or anything that revives the entity) doesn't resume prior intent.
+      ...(isDying && target.components.combat
+        ? { combat: { ...target.components.combat, targetId: null } }
+        : {}),
+      ...(isDying ? { destination: { x: 0, y: 0, z: 0 } } : {}),
     })
 
-    if (newHealth <= 0 && !health.dead) {
+    if (isDying) {
       const killerId = this.damageSourceMap.get(targetId)
       emittedEvents.push(createEntityDiedEvent(targetId, killerId))
     }

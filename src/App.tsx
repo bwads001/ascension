@@ -3,6 +3,7 @@ import { Physics } from '@react-three/rapier'
 import { useEffect, useState } from 'react'
 
 import { gameLoop } from './engine'
+import { useCharacterSync } from './hooks/useCharacterSync'
 import { StartScene, TownScene, FloorScene } from './scenes'
 import { useCharacterStore, useInputStore, useUIStore, useWorldStore } from './store'
 import { PlayerHUD, DeathScreen, CharacterScreen, SkillBar, SkillUnlockNotification } from './ui'
@@ -12,6 +13,8 @@ export default function App() {
   const showStartScreen = useUIStore((s) => s.showStartScreen)
   const floor = useWorldStore((s) => s.floor)
   const [showCharacterScreen, setShowCharacterScreen] = useState(false)
+
+  useCharacterSync()
 
   useEffect(() => {
     load()
