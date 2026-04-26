@@ -181,10 +181,11 @@ export default function StartScene() {
               New Character
             </button>
             <button
-              style={{ ...styles.newButton, ...styles.multiButton }}
-              onClick={() => setShowMultiplayer(true)}
+              style={{ ...styles.newButton, ...styles.multiButton, ...styles.disabledButton }}
+              disabled
+              title="Multiplayer is under construction"
             >
-              Multiplayer
+              Multiplayer (coming soon)
             </button>
           </div>
         </>
@@ -401,6 +402,12 @@ const styles: Record<string, React.CSSProperties> = {
   multiButton: {
     borderColor: '#4a6a8a',
     color: '#6aa4ea',
+  },
+  disabledButton: {
+    opacity: 0.4,
+    cursor: 'not-allowed',
+    borderColor: '#444',
+    color: '#888',
   },
   multiplayerPanel: {
     width: 400,
