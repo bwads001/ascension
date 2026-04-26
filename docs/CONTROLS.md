@@ -2,27 +2,22 @@
 
 Quick reference for Ascension: The Lost Archives.
 
-## Movement
+## Movement & Combat
 
 | Action | Control |
 | ------ | ------- |
-| Move | Click on ground/floor |
-| Move to monster | Click on monster (also enables auto-attack) |
-| Move to interactable | Click on well, portal, tower entrance |
+| Move | Click on ground |
+| Attack monster | Click on monster (pursues if out of range, attacks once on contact) |
+| Continuous attack | Click + hold on monster (keeps attacking until release or death) |
+| **Stand & attack direction** | **Shift + Click** (faces click point, swings — hits target in cone if any) |
+| **Force stand still** | **Hold Shift** (cancels pursuit, freezes movement) |
+| Move to interactable | Click on well, portal, or tower entrance |
 
-## Combat
-
-| Action | Control |
-| ------ | ------- |
-| Toggle auto-attack | Press `1` or click monster |
-| Use skill | Press `2-0` (must be unlocked) |
-| Attack direction | Character faces movement direction |
-
-**Auto-attack behavior:**
-- ON (green border on skill): Automatically attacks enemies in front 180° cone within 3.5 units
-- OFF (red label on skill): No automatic attacks
-- Clicking floor disables auto-attack
-- Clicking monster enables auto-attack
+**Combat behavior:**
+- Click a monster → character pursues, lands one hit, then stops (D2-style)
+- Hold mouse on monster → keeps attacking until target dies or you release
+- Shift+Click → never moves; faces direction and swings (auto-targets enemies in front cone)
+- Shift held while clicking ground also cancels any active chase
 
 ## UI
 
@@ -31,6 +26,7 @@ Quick reference for Ascension: The Lost Archives.
 | Character screen | Press `C` |
 | View skills/attributes | Character screen (C) |
 | Allocate attribute points | Character screen buttons |
+| Use skill | Press `2-0` (must be unlocked) |
 
 ## Interactables
 
@@ -52,7 +48,7 @@ Quick reference for Ascension: The Lost Archives.
 
 | Level | Skills Unlocked |
 | ----- | --------------- |
-| 1 | Basic Attack |
+| 1 | Basic Attack (slot 1, fires automatically on click) |
 | 2 | Primary skill (Power Strike / Aimed Shot / Fireball) |
 | 4 | Secondary skill (Whirlwind / Multi Shot / Frost Nova) |
 | 6 | Utility skill (Battle Cry / Evasion / Heal) |

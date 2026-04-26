@@ -1,10 +1,11 @@
+import type { ThreeEvent } from '@react-three/fiber'
 import { Html } from '@react-three/drei'
 import { RigidBody } from '@react-three/rapier'
 import { useRef, useState, useEffect } from 'react'
 import type { Mesh } from 'three'
 
 import { eventQueue } from '../engine/EventQueue'
-import { useWorldStore } from '../store'
+import { useInputStore, useWorldStore } from '../store'
 import type { MonsterType, GameEvent } from '../types'
 
 const HEALTH: Record<MonsterType, number> = {
@@ -205,29 +206,41 @@ export default function Monster({ id }: MonsterProps) {
     lastHealth.current = currentHealth
   }, [currentHealth])
 
-  const handleClick = () => {
+  const handleClick = (e: ThreeEvent<MouseEvent>) => {
     if (!position) return
+    e.stopPropagation()
 
     const state = useWorldStore.getState()
-    const playerEntries = Object.values(state.entities).filter((e) => e.type === 'player')
+    const playerEntries = Object.values(state.entities).filter((en) => en.type === 'player')
     if (playerEntries.length === 0) return
-
     const player = playerEntries[0]
     if (player.components.health?.dead) return
 
-    if (player.components.combat) {
-      state.updateEntity(player.id, {
-        combat: { ...player.components.combat, autoAttackEnabled: true },
-      })
+    const input = useInputStore.getState()
+
+    // Shift+click: emit ATTACK_DIRECTION toward this monster (force stand still + swing)
+    if (input.shiftHeld) {
+      const playerPos = player.components.position
+      if (!playerPos) return
+      const dx = position.x - playerPos.x
+      const dz = position.z - playerPos.z
+      const len = Math.sqrt(dx * dx + dz * dz) || 1
+      const event: GameEvent = {
+        type: 'ATTACK_DIRECTION',
+        timestamp: performance.now(),
+        entityId: player.id,
+        direction: [dx / len, dz / len],
+      }
+      eventQueue.enqueue(event)
+      return
     }
 
-    const event: GameEvent = {
-      type: 'MOVE_TO',
-      timestamp: performance.now(),
-      entityId: player.id,
-      target: [position.x, 0, position.z],
+    // Normal click: set targetId for pursuit + attack
+    if (player.components.combat) {
+      state.updateEntity(player.id, {
+        combat: { ...player.components.combat, targetId: id },
+      })
     }
-    eventQueue.enqueue(event)
   }
 
   const MonsterModel = MONSTER_MODELS[monsterType]
@@ -246,13 +259,23 @@ export default function Monster({ id }: MonsterProps) {
         onPointerOver={(e) => {
           e.stopPropagation()
           setIsHovered(true)
+          useInputStore.getState().setHoveredMonsterId(id)
           document.body.style.cursor = 'pointer'
         }}
         onPointerOut={() => {
           setIsHovered(false)
+          const input = useInputStore.getState()
+          if (input.hoveredMonsterId === id) {
+            input.setHoveredMonsterId(null)
+          }
           document.body.style.cursor = 'default'
         }}
       >
+        {/* Invisible click hitbox - larger than monster for easier targeting */}
+        <mesh position={[0, 1, 0]}>
+          <cylinderGeometry args={[1.2, 1.2, 2.5, 12]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
         <group scale={isAttacking ? 1.2 : 1}>
           <MonsterModel isHit={isHit} isHovered={isHovered} />
         </group>

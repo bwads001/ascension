@@ -10,18 +10,14 @@ function SkillSlot({
   skillId,
   slotKey,
   isActive,
-  isEnabled,
   cooldownRemaining,
   onActivate,
-  onToggle,
 }: {
   skillId: string | null
   slotKey: string
   isActive: boolean
-  isEnabled?: boolean
   cooldownRemaining: number
   onActivate: () => void
-  onToggle?: () => void
 }) {
   const [justActivated, setJustActivated] = useState(false)
 
@@ -54,29 +50,20 @@ function SkillSlot({
 
   const onCooldown = cooldownRemaining > 0
   const cooldownPercent = skill.cooldown > 0 ? (cooldownRemaining / skill.cooldown) * 100 : 0
-  const isAutoAttack = skillId === 'basic_attack'
 
   return (
     <div
       style={{
         ...styles.slot,
-        ...(isAutoAttack && isEnabled ? styles.slotEnabled : {}),
         ...(justActivated ? styles.slotActivated : {}),
-        ...(isActive && !onCooldown && !isAutoAttack ? styles.slotActive : {}),
+        ...(isActive && !onCooldown ? styles.slotActive : {}),
       }}
-      onClick={isAutoAttack && onToggle ? onToggle : onActivate}
+      onClick={onActivate}
     >
       <span style={styles.keybind}>{slotKey}</span>
       <span style={styles.icon}>{skill.icon}</span>
       <span style={styles.name}>{skill.name}</span>
-      {isAutoAttack && (
-        <div
-          style={{ ...styles.autoAttackIndicator, background: isEnabled ? '#4a8a4a' : '#8a4a4a' }}
-        >
-          {isEnabled ? 'ON' : 'OFF'}
-        </div>
-      )}
-      {onCooldown && !isAutoAttack && (
+      {onCooldown && (
         <>
           <div style={{ ...styles.cooldownOverlay, height: `${cooldownPercent}%` }} />
           <span style={styles.cooldownText}>{Math.ceil(cooldownRemaining / 1000)}s</span>
@@ -99,8 +86,6 @@ export default function SkillBar() {
   const playerClass = currentCharacter?.class ?? 'warrior'
   const playerLevel = currentCharacter?.stats.level ?? 1
   const skillBar = getSkillBar(playerClass, playerLevel)
-  const autoAttackEnabled =
-    entities[currentCharacterId!]?.components.combat?.autoAttackEnabled ?? false
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -108,20 +93,6 @@ export default function SkillBar() {
     }, 100)
     return () => clearInterval(interval)
   }, [tick])
-
-  const toggleAutoAttack = useCallback(() => {
-    if (!currentCharacterId) return
-    const store = useWorldStore.getState()
-    const entity = store.entities[currentCharacterId]
-    if (!entity?.components.combat) return
-
-    store.updateEntity(currentCharacterId, {
-      combat: {
-        ...entity.components.combat,
-        autoAttackEnabled: !entity.components.combat.autoAttackEnabled,
-      },
-    })
-  }, [currentCharacterId])
 
   useEffect(() => {
     const unsubscribe = eventQueue.on('ATTACK_ENTITY', (event: GameEvent) => {
@@ -139,15 +110,13 @@ export default function SkillBar() {
       const skill = SKILLS[skillId]
       if (!skill) return
 
+      // Basic attack slot is informational only - actual attacks come from clicks
+      if (skillId === 'basic_attack') return
+
       const currentTime = performance.now()
       const cooldownRemaining = getCooldownRemaining(skillId, currentTime)
 
       if (cooldownRemaining > 0) return
-
-      if (skillId === 'basic_attack') {
-        toggleAutoAttack()
-        return
-      }
 
       if (!useSkill(skillId, currentTime)) return
 
@@ -188,7 +157,7 @@ export default function SkillBar() {
         eventQueue.enqueue(event)
       }
     },
-    [currentCharacterId, entities, getCooldownRemaining, setActiveSkill, useSkill, toggleAutoAttack]
+    [currentCharacterId, entities, getCooldownRemaining, setActiveSkill, useSkill]
   )
 
   useEffect(() => {
@@ -215,17 +184,14 @@ export default function SkillBar() {
       {skillBar.map((skillId, index) => {
         const slotKey = index < 9 ? String(index + 1) : '0'
         const cooldownRemaining = skillId ? getCooldownRemaining(skillId, currentTime) : 0
-        const isAutoAttack = skillId === 'basic_attack'
         return (
           <SkillSlot
             key={index}
             skillId={skillId}
             slotKey={slotKey}
             isActive={activeSkill === skillId}
-            isEnabled={isAutoAttack ? autoAttackEnabled : undefined}
             cooldownRemaining={cooldownRemaining}
             onActivate={() => skillId && activateSkill(skillId)}
-            onToggle={isAutoAttack ? toggleAutoAttack : undefined}
           />
         )
       })}
@@ -260,10 +226,6 @@ const styles: Record<string, React.CSSProperties> = {
     position: 'relative',
     overflow: 'hidden',
     transition: 'border-color 0.15s, transform 0.15s',
-  },
-  slotEnabled: {
-    borderColor: '#4a8a4a',
-    background: 'linear-gradient(180deg, #3a5a3a 0%, #2a4a2a 100%)',
   },
   slotActive: {
     borderColor: '#ffcc00',
@@ -312,15 +274,6 @@ const styles: Record<string, React.CSSProperties> = {
     overflow: 'hidden',
     textOverflow: 'ellipsis',
     whiteSpace: 'nowrap',
-  },
-  autoAttackIndicator: {
-    position: 'absolute',
-    bottom: 4,
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#fff',
-    padding: '2px 6px',
-    borderRadius: 3,
   },
   cooldownOverlay: {
     position: 'absolute',

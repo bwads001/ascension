@@ -3,7 +3,7 @@ import { RigidBody } from '@react-three/rapier'
 import { useEffect } from 'react'
 
 import { eventQueue } from '../engine/EventQueue'
-import { useCharacterStore, useWorldStore } from '../store'
+import { useCharacterStore, useInputStore, useWorldStore } from '../store'
 import type { GameEvent, RoomBounds } from '../types'
 
 interface RoomConfig {
@@ -113,9 +113,28 @@ function DungeonFloor({ width, depth }: { width: number; depth: number }) {
 
     const store = useWorldStore.getState()
     const entity = store.entities[currentCharacterId]
-    if (entity?.components.combat?.autoAttackEnabled) {
+    const input = useInputStore.getState()
+
+    // Shift+click: attack in direction of click point, no movement
+    if (input.shiftHeld && entity?.components.position) {
+      const playerPos = entity.components.position
+      const dx = point.x - playerPos.x
+      const dz = point.z - playerPos.z
+      const len = Math.sqrt(dx * dx + dz * dz) || 1
+      const event: GameEvent = {
+        type: 'ATTACK_DIRECTION',
+        timestamp: performance.now(),
+        entityId: currentCharacterId,
+        direction: [dx / len, dz / len],
+      }
+      eventQueue.enqueue(event)
+      return
+    }
+
+    // Normal click: clear pursuit target, move to point
+    if (entity?.components.combat?.targetId) {
       store.updateEntity(currentCharacterId, {
-        combat: { ...entity.components.combat, autoAttackEnabled: false },
+        combat: { ...entity.components.combat, targetId: null },
       })
     }
 

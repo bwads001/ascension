@@ -79,8 +79,10 @@ export class CombatSystem implements System {
     entities: Entity[],
     currentTime: number
   ): GameEvent | null {
-    const attacker = entities.find((e) => e.id === attackerId)
-    const target = entities.find((e) => e.id === targetId)
+    const store = useWorldStore.getState()
+    // Read fresh state from store to avoid stale snapshot positions
+    const attacker = store.entities[attackerId] ?? entities.find((e) => e.id === attackerId)
+    const target = store.entities[targetId] ?? entities.find((e) => e.id === targetId)
 
     if (!attacker?.components.combat || !target?.components.health) return null
     if (!attacker.components.position || !target.components.position) return null
@@ -100,7 +102,6 @@ export class CombatSystem implements System {
 
     this.setCooldown(attackerId, currentTime, combat.attackCooldown)
 
-    const store = useWorldStore.getState()
     store.updateEntity(attackerId, {
       combat: { ...combat, lastAttackTime: currentTime },
     })

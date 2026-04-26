@@ -13,7 +13,7 @@ export interface PositionComponent {
   rotation: number
 }
 
-export interface VelocityComponent {
+export interface DestinationComponent {
   x: number
   y: number
   z: number
@@ -31,7 +31,6 @@ export interface CombatComponent {
   attackCooldown: number
   lastAttackTime: number
   targetId: string | null
-  autoAttackEnabled: boolean
 }
 
 export interface AIComponent {
@@ -80,7 +79,7 @@ export interface NetworkComponent {
 
 export interface ComponentMap {
   position?: PositionComponent
-  velocity?: VelocityComponent
+  destination?: DestinationComponent
   health?: HealthComponent
   combat?: CombatComponent
   ai?: AIComponent
@@ -126,7 +125,6 @@ export const PLAYER_DEFAULTS: Partial<ComponentMap> = {
     attackCooldown: 500,
     lastAttackTime: 0,
     targetId: null,
-    autoAttackEnabled: false,
   },
   player: {
     class: 'warrior',
@@ -155,7 +153,6 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       attackCooldown: 1000,
       lastAttackTime: 0,
       targetId: null,
-      autoAttackEnabled: false,
     },
     ai: {
       behavior: 'wander',
@@ -176,7 +173,6 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       attackCooldown: 800,
       lastAttackTime: 0,
       targetId: null,
-      autoAttackEnabled: false,
     },
     ai: {
       behavior: 'wander',
@@ -197,7 +193,6 @@ export const MONSTER_DEFAULTS: Record<MonsterType, Partial<ComponentMap>> = {
       attackCooldown: 1200,
       lastAttackTime: 0,
       targetId: null,
-      autoAttackEnabled: false,
     },
     ai: {
       behavior: 'wander',

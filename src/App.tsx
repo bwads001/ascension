@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 
 import { gameLoop } from './engine'
 import { StartScene, TownScene, FloorScene } from './scenes'
-import { useCharacterStore, useUIStore, useWorldStore } from './store'
+import { useCharacterStore, useInputStore, useUIStore, useWorldStore } from './store'
 import { PlayerHUD, DeathScreen, CharacterScreen, SkillBar, SkillUnlockNotification } from './ui'
 
 export default function App() {
@@ -20,6 +20,41 @@ export default function App() {
   useEffect(() => {
     gameLoop.start()
     return () => gameLoop.stop()
+  }, [])
+
+  // Global input listeners: Shift modifier + mouse button state
+  useEffect(() => {
+    const input = useInputStore.getState()
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') input.setShiftHeld(true)
+    }
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key === 'Shift') input.setShiftHeld(false)
+    }
+    const handleMouseDown = (e: MouseEvent) => {
+      if (e.button === 0) input.setMouseDown(true)
+    }
+    const handleMouseUp = (e: MouseEvent) => {
+      if (e.button === 0) input.setMouseDown(false)
+    }
+    const handleBlur = () => {
+      input.reset()
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('mousedown', handleMouseDown)
+    window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('blur', handleBlur)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('mousedown', handleMouseDown)
+      window.removeEventListener('mouseup', handleMouseUp)
+      window.removeEventListener('blur', handleBlur)
+    }
   }, [])
 
   useEffect(() => {
@@ -64,7 +99,7 @@ export default function App() {
       <DeathScreen />
       {showCharacterScreen && <CharacterScreen onClose={() => setShowCharacterScreen(false)} />}
       <div style={styles.hud}>
-        <p>ESC: {floor > 0 ? 'Return to Town' : 'Menu'} | C: Character | 1-0: Skills</p>
+        <p>ESC: {floor > 0 ? 'Return to Town' : 'Menu'} | Click: move/attack | Shift+Click: stand & attack | C: Character | 2-0: Skills</p>
       </div>
     </div>
   )

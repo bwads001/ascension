@@ -131,8 +131,8 @@ export class AISystem implements System {
     store: ReturnType<typeof useWorldStore.getState>
   ): boolean {
     const entity = store.entities[entityId]
-    const velocity = entity?.components.velocity
-    if (!velocity || (velocity.x === 0 && velocity.z === 0)) {
+    const destination = entity?.components.destination
+    if (!destination || (destination.x === 0 && destination.z === 0)) {
       this.lastPositions.delete(entityId)
       return false
     }

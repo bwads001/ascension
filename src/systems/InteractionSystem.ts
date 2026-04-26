@@ -1,12 +1,12 @@
 import { eventQueue } from '../engine/EventQueue'
-import { useCombatStore, useWorldStore } from '../store'
+import { useCombatStore, useInputStore, useWorldStore } from '../store'
 import type { System, GameEvent, Entity } from '../types'
-import { distanceXZ } from '../utils/math'
+import { distanceXZ, getAngle, inRange } from '../utils/math'
 import { findTargetInFront } from '../utils/targeting'
 
 const INTERACT_RANGE = 2
-const AUTO_ATTACK_RANGE = 3.5
-const AUTO_ATTACK_CONE = Math.PI
+const SHIFT_ATTACK_RANGE = 3.5
+const SHIFT_ATTACK_CONE = Math.PI
 
 interface PendingInteraction {
   type: 'heal' | 'tower' | 'portal'
@@ -22,6 +22,15 @@ function createAttackEvent(attackerId: string, targetId: string): GameEvent {
   }
 }
 
+function createMoveEvent(entityId: string, target: [number, number, number]): GameEvent {
+  return {
+    type: 'MOVE_TO',
+    timestamp: performance.now(),
+    entityId,
+    target,
+  }
+}
+
 export class InteractionSystem implements System {
   readonly name = 'InteractionSystem'
   readonly priority = 5
@@ -32,12 +41,22 @@ export class InteractionSystem implements System {
     const emittedEvents: GameEvent[] = []
     const currentTime = performance.now()
     const store = useWorldStore.getState()
+    const input = useInputStore.getState()
 
     for (const event of events) {
       if (event.type === 'INTERACT') {
         this.handleInteract(event.entityId, event.targetId, entities)
       } else if (event.type === 'APPROACH_INTERACT') {
         this.handleApproachInteract(event, store)
+      } else if (event.type === 'ATTACK_DIRECTION') {
+        const attackEvent = this.handleAttackDirection(
+          event.entityId,
+          event.direction,
+          entities,
+          currentTime,
+          store
+        )
+        if (attackEvent) emittedEvents.push(attackEvent)
       }
     }
 
@@ -61,17 +80,108 @@ export class InteractionSystem implements System {
         continue
       }
 
-      const combat = entity.components.combat
-      if (!combat?.autoAttackEnabled) continue
+      // Mouse-hold pursuit: re-assert target while mouse held over a monster
+      if (input.mouseDown && input.hoveredMonsterId && !input.shiftHeld) {
+        const hovered = store.entities[input.hoveredMonsterId]
+        if (hovered && !hovered.components.health?.dead) {
+          const combat = entity.components.combat
+          if (combat && combat.targetId !== input.hoveredMonsterId) {
+            store.updateEntity(entity.id, {
+              combat: { ...combat, targetId: input.hoveredMonsterId },
+            })
+          }
+        }
+      }
 
-      const target = findTargetInFront(entity, entities, AUTO_ATTACK_RANGE, AUTO_ATTACK_CONE)
-      if (target) {
-        if (!this.canAttack(entity.id, currentTime)) continue
-        emittedEvents.push(createAttackEvent(entity.id, target.id))
+      // Shift held: cancel any active pursuit (force stand still)
+      if (input.shiftHeld && entity.components.combat?.targetId) {
+        store.updateEntity(entity.id, {
+          combat: { ...entity.components.combat, targetId: null },
+        })
+        // Also clear movement destination (force stand still)
+        store.updateEntity(entity.id, {
+          destination: { x: entity.components.position.x, y: 0, z: entity.components.position.z },
+        })
+      }
+
+      const combat = entity.components.combat
+      if (!combat?.targetId) continue
+
+      const target = store.entities[combat.targetId]
+      if (!target || target.components.health?.dead || !target.components.position) {
+        // Target invalid - clear it
+        store.updateEntity(entity.id, {
+          combat: { ...combat, targetId: null },
+        })
+        continue
+      }
+
+      // Use FRESH positions from store, not stale snapshot
+      const targetPos = target.components.position
+      const freshPlayer = store.entities[entity.id]
+      const playerPos = freshPlayer?.components.position ?? entity.components.position
+
+      if (inRange(playerPos, targetPos, combat.attackRange)) {
+        // In range: face target, stop moving, attack
+        const angle = getAngle(playerPos, targetPos)
+        store.updateEntity(entity.id, {
+          position: { ...playerPos, rotation: angle },
+          destination: { x: playerPos.x, y: 0, z: playerPos.z },
+        })
+
+        if (this.canAttack(entity.id, currentTime)) {
+          emittedEvents.push(createAttackEvent(entity.id, combat.targetId))
+          // Single-click semantics: clear target after firing the attack.
+          // If mouse is held, the hover loop above will re-assert it next tick.
+          store.updateEntity(entity.id, {
+            combat: { ...combat, targetId: null },
+          })
+        }
+      } else {
+        // Out of range: pursue (idempotent - destination overwrites each tick)
+        emittedEvents.push(createMoveEvent(entity.id, [targetPos.x, 0, targetPos.z]))
       }
     }
 
     return emittedEvents
+  }
+
+  private handleAttackDirection(
+    entityId: string,
+    direction: [number, number],
+    entities: Entity[],
+    currentTime: number,
+    store: ReturnType<typeof useWorldStore.getState>
+  ): GameEvent | null {
+    const entity = store.entities[entityId]
+    if (!entity?.components.position || !entity.components.combat) return null
+    if (entity.components.health?.dead) return null
+
+    // Face the direction
+    const pos = entity.components.position
+    const rotation = Math.atan2(direction[1], direction[0])
+    store.updateEntity(entityId, {
+      position: { ...pos, rotation },
+      destination: { x: pos.x, y: 0, z: pos.z }, // Stand still
+      combat: { ...entity.components.combat, targetId: null },
+    })
+
+    if (!this.canAttack(entityId, currentTime)) return null
+
+    // Find target in front cone (after rotation update)
+    const updatedEntity = { ...entity, components: { ...entity.components, position: { ...pos, rotation } } }
+    const target = findTargetInFront(updatedEntity, entities, SHIFT_ATTACK_RANGE, SHIFT_ATTACK_CONE)
+    if (target) {
+      return createAttackEvent(entityId, target.id)
+    }
+
+    // No target - "swing at air": set cooldown + animation timestamp, no damage event
+    const combatStore = useCombatStore.getState()
+    combatStore.setCooldown(entityId, currentTime, entity.components.combat.attackCooldown)
+    store.updateEntity(entityId, {
+      combat: { ...entity.components.combat, lastAttackTime: currentTime, targetId: null },
+    })
+    return null
   }
 
   private canAttack(entityId: string, currentTime: number): boolean {

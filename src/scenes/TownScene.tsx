@@ -106,7 +106,7 @@ export default function TownScene() {
             z: currentCharacter.position.z,
             rotation: 0,
           },
-          velocity: { x: 0, y: 0, z: 0 },
+          destination: { x: 0, y: 0, z: 0 },
           health: {
             current: maxHealth,
             max: maxHealth,
@@ -114,11 +114,10 @@ export default function TownScene() {
           },
           combat: {
             attackRange: 3,
-            attackDamage: baseDamage,
+            attackDamage: 8,
             attackCooldown: 500,
             lastAttackTime: 0,
             targetId: null,
-            autoAttackEnabled: false,
           },
           player: {
             class: currentCharacter.class,
@@ -157,7 +156,7 @@ export default function TownScene() {
             z: spawn.position[2],
             rotation: 0,
           },
-          velocity: { x: 0, y: 0, z: 0 },
+          destination: { x: 0, y: 0, z: 0 },
           ai: {
             ...monsterDefaults.ai!,
             homePosition: [spawn.position[0], spawn.position[1], spawn.position[2]],

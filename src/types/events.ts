@@ -5,9 +5,9 @@ export type GameEventType =
   | 'APPROACH_ENTITY'
   | 'APPROACH_INTERACT'
   | 'ATTACK_ENTITY'
+  | 'ATTACK_DIRECTION'
   | 'USE_SKILL'
   | 'SKILL_UNLOCKED'
-  | 'TOGGLE_AUTO_ATTACK'
   | 'DAMAGE_DEALT'
   | 'ENTITY_DIED'
   | 'ENTITY_SPAWNED'
@@ -52,6 +52,12 @@ export interface AttackEntityEvent extends BaseGameEvent {
   type: 'ATTACK_ENTITY'
   attackerId: string
   targetId: string
+}
+
+export interface AttackDirectionEvent extends BaseGameEvent {
+  type: 'ATTACK_DIRECTION'
+  entityId: string
+  direction: [number, number] // unit vector in XZ plane
 }
 
 export interface UseSkillEvent extends BaseGameEvent {
@@ -144,6 +150,7 @@ export type GameEvent =
   | ApproachEntityEvent
   | ApproachInteractEvent
   | AttackEntityEvent
+  | AttackDirectionEvent
   | UseSkillEvent
   | SkillUnlockedEvent
   | DamageDealtEvent

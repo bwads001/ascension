@@ -104,7 +104,7 @@ export class MovementSystem implements System {
     if (!entity?.components.position) return
 
     store.updateEntity(entityId, {
-      velocity: { x: target[0], y: 0, z: target[2] },
+      destination: { x: target[0], y: 0, z: target[2] },
     })
   }
 
@@ -124,13 +124,13 @@ export class MovementSystem implements System {
 
     if (inRange(currentPos, targetPos, stopAtRange)) {
       store.updateEntity(entityId, {
-        velocity: { x: currentPos.x, y: 0, z: currentPos.z },
+        destination: { x: currentPos.x, y: 0, z: currentPos.z },
       })
       return
     }
 
     store.updateEntity(entityId, {
-      velocity: { x: targetPos.x, y: 0, z: targetPos.z },
+      destination: { x: targetPos.x, y: 0, z: targetPos.z },
     })
   }
 
@@ -140,13 +140,13 @@ export class MovementSystem implements System {
     store: ReturnType<typeof useWorldStore.getState>
   ): void {
     const position = entity.components.position
-    const velocity = entity.components.velocity
+    const destination = entity.components.destination
 
-    if (!position || !velocity) return
+    if (!position || !destination) return
 
-    if (velocity.x === 0 && velocity.z === 0) return
+    if (destination.x === 0 && destination.z === 0) return
 
-    const targetPos = { x: velocity.x, y: position.y, z: velocity.z }
+    const targetPos = { x: destination.x, y: position.y, z: destination.z }
     const currentPos = { x: position.x, y: position.y, z: position.z }
 
     const dist = distanceXZ(currentPos, targetPos)
@@ -162,7 +162,7 @@ export class MovementSystem implements System {
 
     if (dist <= 0.1) {
       store.updateEntity(entity.id, {
-        velocity: { x: 0, y: 0, z: 0 },
+        destination: { x: 0, y: 0, z: 0 },
       })
       return
     }
@@ -186,7 +186,7 @@ export class MovementSystem implements System {
       )
       if (!validPos) {
         store.updateEntity(entity.id, {
-          velocity: { x: 0, y: 0, z: 0 },
+          destination: { x: 0, y: 0, z: 0 },
         })
         return
       }
@@ -202,7 +202,7 @@ export class MovementSystem implements System {
     if (updatedEntity?.components.position) {
       if (distanceXZ(updatedEntity.components.position, targetPos) <= 0.1) {
         store.updateEntity(entity.id, {
-          velocity: { x: 0, y: 0, z: 0 },
+          destination: { x: 0, y: 0, z: 0 },
         })
       }
     }

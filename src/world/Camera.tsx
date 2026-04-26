@@ -3,6 +3,8 @@ import { Vector3 } from 'three'
 
 import { useWorldStore, useCharacterStore } from '../store'
 
+const CAMERA_OFFSET = new Vector3(0, 25, -25)
+
 export default function Camera() {
   const { camera } = useThree()
   const currentCharacterId = useCharacterStore((s) => s.currentCharacterId)
@@ -12,14 +14,10 @@ export default function Camera() {
     if (!entity?.components.position) return
 
     const pos = entity.components.position
-    const targetX = pos.x
-    const targetZ = pos.z
 
-    const offset = new Vector3(0, 25, -25)
-    const targetPosition = new Vector3(targetX + offset.x, offset.y, targetZ + offset.z)
-
-    camera.position.lerp(targetPosition, 0.05)
-    camera.lookAt(targetX, 0, targetZ)
+    camera.position.set(pos.x + CAMERA_OFFSET.x, CAMERA_OFFSET.y, pos.z + CAMERA_OFFSET.z)
+    camera.up.set(0, 1, 0)
+    camera.lookAt(pos.x, 0, pos.z)
   })
 
   return null
