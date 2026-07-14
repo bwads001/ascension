@@ -206,19 +206,30 @@ export default function Monster({ id }: MonsterProps) {
   }, [currentHealth])
 
   const handleClick = () => {
-    if (!position) return
+    console.log('[Monster] handleClick called for', id)
+    if (!position) {
+      console.log('[Monster] No position, returning')
+      return
+    }
 
     const state = useWorldStore.getState()
     const playerEntries = Object.values(state.entities).filter((e) => e.type === 'player')
+    console.log('[Monster] Found', playerEntries.length, 'players')
     if (playerEntries.length === 0) return
 
     const player = playerEntries[0]
-    if (player.components.health?.dead) return
+    if (player.components.health?.dead) {
+      console.log('[Monster] Player is dead')
+      return
+    }
 
     if (player.components.combat) {
+      console.log('[Monster] Setting autoAttackEnabled to true for player', player.id)
       state.updateEntity(player.id, {
         combat: { ...player.components.combat, autoAttackEnabled: true },
       })
+    } else {
+      console.log('[Monster] Player has no combat component!')
     }
 
     const event: GameEvent = {

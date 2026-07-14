@@ -163,7 +163,11 @@ interface Entity {
       targetId: string | null
       autoAttackEnabled: boolean
     }
-    ai?: { behavior: 'wander' | 'aggro'; aggroRange: number; homePosition: [number, number, number] }
+    ai?: {
+      behavior: 'wander' | 'aggro'
+      aggroRange: number
+      homePosition: [number, number, number]
+    }
     player?: {
       class: 'warrior' | 'archer' | 'mage'
       name: string
@@ -186,7 +190,12 @@ Decoupled communication between systems:
 ```typescript
 type GameEvent =
   | { type: 'MOVE_TO'; entityId: string; target: [number, number, number] }
-  | { type: 'APPROACH_INTERACT'; entityId: string; interactType: 'heal' | 'tower' | 'portal'; targetPosition: [number, number, number] }
+  | {
+      type: 'APPROACH_INTERACT'
+      entityId: string
+      interactType: 'heal' | 'tower' | 'portal'
+      targetPosition: [number, number, number]
+    }
   | { type: 'ATTACK_ENTITY'; attackerId: string; targetId: string }
   | { type: 'USE_SKILL'; entityId: string; skillId: string; targetId: string }
   | { type: 'SKILL_UNLOCKED'; entityId: string; skillId: string }
@@ -231,6 +240,7 @@ function isInFrontCone(observerPos, observerRotation, targetPos, coneAngle)
 ```
 
 **Auto-attack behavior:**
+
 - Enabled via toggle (press '1' or click monster)
 - Targets nearest enemy in 180° front cone within 3.5 units
 - Disabled when clicking floor/interactables
@@ -256,6 +266,7 @@ interface SkillDefinition {
 ```
 
 **Unlock schedule:**
+
 - Level 1: Basic Attack
 - Level 2: Primary skill
 - Level 4: Secondary skill
@@ -333,7 +344,7 @@ class GameLoop {
 
 Procedural rooms in `FloorDungeon.tsx`:
 
-- Rooms: 5 + floor * 2 rooms per floor
+- Rooms: 5 + floor \* 2 rooms per floor
 - Corridors: Connect sequential rooms
 - Walls: With doorways at connections
 - Lighting: Torches in corners and corridors

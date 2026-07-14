@@ -50,15 +50,15 @@ VITE_SIGNALING_URL=ws://your-vps:8080/ws
 
 ## Scripts
 
-| Command | Description |
-| ------- | ----------- |
-| `npm run dev` | Start dev server |
-| `npm run build` | Build for production |
-| `npm run lint` | Run oxlint |
-| `npm run lint:fix` | Run oxlint with auto-fix |
-| `npm run fmt` | Format with oxfmt |
-| `npm run fmt:check` | Check formatting |
-| `npm run typecheck` | Run TypeScript check |
+| Command             | Description              |
+| ------------------- | ------------------------ |
+| `npm run dev`       | Start dev server         |
+| `npm run build`     | Build for production     |
+| `npm run lint`      | Run oxlint               |
+| `npm run lint:fix`  | Run oxlint with auto-fix |
+| `npm run fmt`       | Format with oxfmt        |
+| `npm run fmt:check` | Check formatting         |
+| `npm run typecheck` | Run TypeScript check     |
 
 ## Tech Stack
 

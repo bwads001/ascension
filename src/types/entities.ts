@@ -1,4 +1,4 @@
-export type EntityType = 'player' | 'monster' | 'npc' | 'prop' | 'projectile'
+export type EntityType = 'player' | 'monster' | 'npc' | 'prop' | 'projectile' | 'item'
 
 export type PlayerClass = 'warrior' | 'archer' | 'mage'
 
@@ -59,6 +59,10 @@ export interface PlayerComponent {
   xpToNextLevel: number
   attributes: Attributes
   unspentPoints: number
+  equipment: Partial<Record<string, import('./items').Equipment>>
+  inventory: import('./items').Equipment[]
+  potions: number
+  lastPotionTime: number
 }
 
 export interface MonsterComponent {
@@ -142,6 +146,10 @@ export const PLAYER_DEFAULTS: Partial<ComponentMap> = {
       stamina: 5,
     },
     unspentPoints: 0,
+    equipment: {},
+    inventory: [],
+    potions: 3,
+    lastPotionTime: 0,
   },
   render: { visible: true, highlighted: false, opacity: 1 },
 }

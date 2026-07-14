@@ -6,12 +6,15 @@ import type { GameEvent } from '../types'
 import { SKILLS, getSkillBar } from '../types/skills'
 import { findTargetInRange } from '../utils/targeting'
 
+const POTION_COOLDOWN = 10000
+
 function SkillSlot({
   skillId,
   slotKey,
   isActive,
   isEnabled,
   cooldownRemaining,
+  potionCount,
   onActivate,
   onToggle,
 }: {
@@ -20,6 +23,7 @@ function SkillSlot({
   isActive: boolean
   isEnabled?: boolean
   cooldownRemaining: number
+  potionCount?: number
   onActivate: () => void
   onToggle?: () => void
 }) {
@@ -55,6 +59,8 @@ function SkillSlot({
   const onCooldown = cooldownRemaining > 0
   const cooldownPercent = skill.cooldown > 0 ? (cooldownRemaining / skill.cooldown) * 100 : 0
   const isAutoAttack = skillId === 'basic_attack'
+  const isPotion = skillId === 'health_potion'
+  const noPotions = isPotion && (potionCount ?? 0) <= 0
 
   return (
     <div
@@ -63,8 +69,9 @@ function SkillSlot({
         ...(isAutoAttack && isEnabled ? styles.slotEnabled : {}),
         ...(justActivated ? styles.slotActivated : {}),
         ...(isActive && !onCooldown && !isAutoAttack ? styles.slotActive : {}),
+        ...(noPotions ? styles.slotDisabled : {}),
       }}
-      onClick={isAutoAttack && onToggle ? onToggle : onActivate}
+      onClick={isAutoAttack && onToggle ? onToggle : isPotion || noPotions ? undefined : onActivate}
     >
       <span style={styles.keybind}>{slotKey}</span>
       <span style={styles.icon}>{skill.icon}</span>
@@ -76,7 +83,12 @@ function SkillSlot({
           {isEnabled ? 'ON' : 'OFF'}
         </div>
       )}
-      {onCooldown && !isAutoAttack && (
+      {isPotion && (
+        <div style={{ ...styles.potionCount, color: noPotions ? '#8a4a4a' : '#4a8a4a' }}>
+          {potionCount ?? 0}
+        </div>
+      )}
+      {onCooldown && !isAutoAttack && !isPotion && (
         <>
           <div style={{ ...styles.cooldownOverlay, height: `${cooldownPercent}%` }} />
           <span style={styles.cooldownText}>{Math.ceil(cooldownRemaining / 1000)}s</span>
@@ -101,6 +113,7 @@ export default function SkillBar() {
   const skillBar = getSkillBar(playerClass, playerLevel)
   const autoAttackEnabled =
     entities[currentCharacterId!]?.components.combat?.autoAttackEnabled ?? false
+  const potionCount = entities[currentCharacterId!]?.components.player?.potions ?? 0
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -110,11 +123,23 @@ export default function SkillBar() {
   }, [tick])
 
   const toggleAutoAttack = useCallback(() => {
-    if (!currentCharacterId) return
+    if (!currentCharacterId) {
+      console.log('[toggleAutoAttack] No currentCharacterId')
+      return
+    }
     const store = useWorldStore.getState()
     const entity = store.entities[currentCharacterId]
-    if (!entity?.components.combat) return
+    if (!entity?.components.combat) {
+      console.log('[toggleAutoAttack] No combat component')
+      return
+    }
 
+    console.log(
+      '[toggleAutoAttack] Toggling from',
+      entity.components.combat.autoAttackEnabled,
+      'to',
+      !entity.components.combat.autoAttackEnabled
+    )
     store.updateEntity(currentCharacterId, {
       combat: {
         ...entity.components.combat,
@@ -134,20 +159,45 @@ export default function SkillBar() {
 
   const activateSkill = useCallback(
     (skillId: string) => {
-      if (!currentCharacterId) return
+      console.log('[activateSkill] Called with skillId:', skillId)
+      if (!currentCharacterId) {
+        console.log('[activateSkill] No currentCharacterId')
+        return
+      }
 
       const skill = SKILLS[skillId]
-      if (!skill) return
+      if (!skill) {
+        console.log('[activateSkill] No skill found for:', skillId)
+        return
+      }
 
       const currentTime = performance.now()
-      const cooldownRemaining = getCooldownRemaining(skillId, currentTime)
-
-      if (cooldownRemaining > 0) return
 
       if (skillId === 'basic_attack') {
+        console.log('[activateSkill] Calling toggleAutoAttack')
         toggleAutoAttack()
         return
       }
+
+      if (skillId === 'health_potion') {
+        const store = useWorldStore.getState()
+        const player = store.entities[currentCharacterId]
+        if (!player?.components.player) return
+
+        if (player.components.player.potions <= 0) return
+        if (currentTime - player.components.player.lastPotionTime < POTION_COOLDOWN) return
+
+        const event: GameEvent = {
+          type: 'USE_POTION',
+          timestamp: currentTime,
+          entityId: currentCharacterId,
+        }
+        eventQueue.enqueue(event)
+        return
+      }
+
+      const cooldownRemaining = getCooldownRemaining(skillId, currentTime)
+      if (cooldownRemaining > 0) return
 
       if (!useSkill(skillId, currentTime)) return
 
@@ -196,8 +246,10 @@ export default function SkillBar() {
       const key = e.key
       const slotIndex = key >= '1' && key <= '9' ? parseInt(key) - 1 : key === '0' ? 9 : -1
 
+      console.log('[SkillBar] Key pressed:', key, 'slotIndex:', slotIndex)
       if (slotIndex >= 0 && slotIndex < skillBar.length) {
         const skillId = skillBar[slotIndex]
+        console.log('[SkillBar] skillId at slot:', skillId)
         if (skillId) {
           activateSkill(skillId)
         }
@@ -216,6 +268,7 @@ export default function SkillBar() {
         const slotKey = index < 9 ? String(index + 1) : '0'
         const cooldownRemaining = skillId ? getCooldownRemaining(skillId, currentTime) : 0
         const isAutoAttack = skillId === 'basic_attack'
+        const isPotion = skillId === 'health_potion'
         return (
           <SkillSlot
             key={index}
@@ -224,6 +277,7 @@ export default function SkillBar() {
             isActive={activeSkill === skillId}
             isEnabled={isAutoAttack ? autoAttackEnabled : undefined}
             cooldownRemaining={cooldownRemaining}
+            potionCount={isPotion ? potionCount : undefined}
             onActivate={() => skillId && activateSkill(skillId)}
             onToggle={isAutoAttack ? toggleAutoAttack : undefined}
           />
@@ -273,6 +327,10 @@ const styles: Record<string, React.CSSProperties> = {
     borderColor: '#fff',
     background: 'linear-gradient(180deg, #5a5a6a 0%, #4a4a5a 100%)',
   },
+  slotDisabled: {
+    opacity: 0.5,
+    cursor: 'not-allowed',
+  },
   lockedSlot: {
     width: 60,
     height: 70,
@@ -319,6 +377,14 @@ const styles: Record<string, React.CSSProperties> = {
     fontSize: 10,
     fontWeight: 'bold',
     color: '#fff',
+    padding: '2px 6px',
+    borderRadius: 3,
+  },
+  potionCount: {
+    position: 'absolute',
+    bottom: 4,
+    fontSize: 10,
+    fontWeight: 'bold',
     padding: '2px 6px',
     borderRadius: 3,
   },

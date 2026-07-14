@@ -6,6 +6,7 @@ export type GameEventType =
   | 'APPROACH_INTERACT'
   | 'ATTACK_ENTITY'
   | 'USE_SKILL'
+  | 'USE_POTION'
   | 'SKILL_UNLOCKED'
   | 'TOGGLE_AUTO_ATTACK'
   | 'DAMAGE_DEALT'
@@ -59,6 +60,11 @@ export interface UseSkillEvent extends BaseGameEvent {
   entityId: string
   skillId: string
   targetId: string
+}
+
+export interface UsePotionEvent extends BaseGameEvent {
+  type: 'USE_POTION'
+  entityId: string
 }
 
 export interface SkillUnlockedEvent extends BaseGameEvent {
@@ -145,6 +151,7 @@ export type GameEvent =
   | ApproachInteractEvent
   | AttackEntityEvent
   | UseSkillEvent
+  | UsePotionEvent
   | SkillUnlockedEvent
   | DamageDealtEvent
   | EntityDiedEvent

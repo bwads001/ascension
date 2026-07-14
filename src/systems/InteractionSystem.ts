@@ -7,6 +7,8 @@ import { findTargetInFront } from '../utils/targeting'
 const INTERACT_RANGE = 2
 const AUTO_ATTACK_RANGE = 3.5
 const AUTO_ATTACK_CONE = Math.PI
+const POTION_COOLDOWN = 10000
+const POTION_HEAL_PERCENT = 0.3
 
 interface PendingInteraction {
   type: 'heal' | 'tower' | 'portal'
@@ -38,6 +40,8 @@ export class InteractionSystem implements System {
         this.handleInteract(event.entityId, event.targetId, entities)
       } else if (event.type === 'APPROACH_INTERACT') {
         this.handleApproachInteract(event, store)
+      } else if (event.type === 'USE_POTION') {
+        this.handleUsePotion(event.entityId, currentTime, store)
       }
     }
 
@@ -64,9 +68,14 @@ export class InteractionSystem implements System {
       const combat = entity.components.combat
       if (!combat?.autoAttackEnabled) continue
 
+      console.log('[InteractionSystem] Auto-attack enabled for', entity.id)
       const target = findTargetInFront(entity, entities, AUTO_ATTACK_RANGE, AUTO_ATTACK_CONE)
+      console.log('[InteractionSystem] Found target:', target?.id ?? 'none')
       if (target) {
-        if (!this.canAttack(entity.id, currentTime)) continue
+        const canAtk = this.canAttack(entity.id, currentTime)
+        console.log('[InteractionSystem] Can attack:', canAtk)
+        if (!canAtk) continue
+        console.log('[InteractionSystem] Creating ATTACK_ENTITY event')
         emittedEvents.push(createAttackEvent(entity.id, target.id))
       }
     }
@@ -141,6 +150,34 @@ export class InteractionSystem implements System {
       timestamp: performance.now(),
       entityId,
       target: [targetPos.x, 0, targetPos.z],
+    })
+  }
+
+  private handleUsePotion(
+    entityId: string,
+    currentTime: number,
+    store: ReturnType<typeof useWorldStore.getState>
+  ): void {
+    const entity = store.entities[entityId]
+    if (!entity?.components.player || !entity.components.health) return
+
+    const player = entity.components.player
+    const health = entity.components.health
+
+    if (player.potions <= 0) return
+    if (currentTime - player.lastPotionTime < POTION_COOLDOWN) return
+    if (health.current >= health.max) return
+
+    const healAmount = Math.floor(health.max * POTION_HEAL_PERCENT)
+    const newHealth = Math.min(health.max, health.current + healAmount)
+
+    store.updateEntity(entityId, {
+      health: { ...health, current: newHealth },
+      player: {
+        ...player,
+        potions: player.potions - 1,
+        lastPotionTime: currentTime,
+      },
     })
   }
 }

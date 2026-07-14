@@ -378,6 +378,9 @@ export class NetworkService {
         playTimeMs: 0,
         attributes: { strength: 5, agility: 5, intellect: 5, stamina: 5 },
         unspentPoints: 0,
+        equipment: {},
+        inventory: [],
+        potions: 3,
       },
       position: { floor: 0, x: 0, z: 0 },
     }

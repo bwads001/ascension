@@ -1,4 +1,5 @@
 import type { PlayerClass, Attributes } from './entities'
+import type { Equipment } from './items'
 
 export interface CharacterStats {
   level: number
@@ -9,6 +10,9 @@ export interface CharacterStats {
   playTimeMs: number
   attributes: Attributes
   unspentPoints: number
+  equipment: Partial<Record<string, Equipment>>
+  inventory: Equipment[]
+  potions: number
 }
 
 export interface CharacterPosition {
@@ -46,7 +50,7 @@ export const DEFAULT_SETTINGS: GameSettings = {
   fullscreen: false,
 }
 
-export const SAVE_VERSION = 2
+export const SAVE_VERSION = 3
 
 export function createDefaultSaveData(): SaveData {
   return {
@@ -78,6 +82,9 @@ export function createNewCharacter(name: string, playerClass: PlayerClass): Char
         stamina: 5,
       },
       unspentPoints: 0,
+      equipment: {},
+      inventory: [],
+      potions: 3,
     },
     position: {
       floor: 0,

@@ -127,6 +127,9 @@ export class PersistenceService {
             stamina: 5,
           },
           unspentPoints: stats.unspentPoints ?? 0,
+          equipment: stats.equipment ?? {},
+          inventory: stats.inventory ?? [],
+          potions: stats.potions ?? 3,
         },
       }
     })

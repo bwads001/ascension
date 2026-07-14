@@ -144,13 +144,24 @@ export const SKILLS: Record<string, SkillDefinition> = {
     classes: ['mage'],
     unlockLevel: 6,
   },
+  health_potion: {
+    id: 'health_potion',
+    name: 'Health Potion',
+    description: 'Restore 30% of max health',
+    icon: '🧪',
+    cooldown: 10000,
+    range: 0,
+    targetType: 'self',
+    classes: ['warrior', 'archer', 'mage'],
+    unlockLevel: 1,
+  },
 }
 
 export function getAvailableSkills(playerClass: PlayerClass, level: number): string[] {
   const skills: string[] = ['basic_attack']
 
   for (const [id, skill] of Object.entries(SKILLS)) {
-    if (id === 'basic_attack') continue
+    if (id === 'basic_attack' || id === 'health_potion') continue
     if (skill.classes.includes(playerClass) && skill.unlockLevel <= level) {
       skills.push(id)
     }
@@ -163,8 +174,16 @@ export function getSkillBar(playerClass: PlayerClass, level: number): (string | 
   const available = getAvailableSkills(playerClass, level)
   const bar: (string | null)[] = Array(10).fill(null)
 
-  for (let i = 0; i < Math.min(available.length, 10); i++) {
-    bar[i] = available[i]
+  const potionIndex = 4
+  bar[potionIndex] = 'health_potion'
+
+  let skillIndex = 0
+  for (let i = 0; i < 10; i++) {
+    if (i === potionIndex) continue
+    if (skillIndex < available.length) {
+      bar[i] = available[skillIndex]
+      skillIndex++
+    }
   }
 
   return bar

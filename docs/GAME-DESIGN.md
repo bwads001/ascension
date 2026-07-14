@@ -21,26 +21,28 @@ Town (hub) → Kill Monsters → Level Up → Tower (challenge) → Return to To
 
 ## Controls
 
-| Action | Input |
-| ------ | ----- |
-| Move | Click on ground/floor |
-| Attack monster | Click monster (enables auto-attack, moves to range) |
-| Toggle auto-attack | Press `1` |
-| Use skills | Press `2-0` |
-| Character screen | Press `C` |
-| Heal | Click well |
-| Enter tower | Click tower entrance (requires 5 kills) |
-| Exit dungeon | Click exit portal |
+| Action             | Input                                               |
+| ------------------ | --------------------------------------------------- |
+| Move               | Click on ground/floor                               |
+| Attack monster     | Click monster (enables auto-attack, moves to range) |
+| Toggle auto-attack | Press `1`                                           |
+| Use skills         | Press `2-4, 6-0`                                    |
+| Use health potion  | Press `5`                                           |
+| Character screen   | Press `C`                                           |
+| Inventory screen   | Press `I`                                           |
+| Heal               | Click well                                          |
+| Enter tower        | Click tower entrance (requires 5 kills)             |
+| Exit dungeon       | Click exit portal                                   |
 
 See [CONTROLS.md](CONTROLS.md) for full reference.
 
 ## Classes
 
-| Class | Primary Stat | Specialization |
-| ----- | ------------ | -------------- |
-| Warrior | Strength | Melee damage, AoE, buffs |
-| Archer | Agility | Ranged damage, multi-target, evasion |
-| Mage | Intellect | Spell damage, AoE, healing |
+| Class   | Primary Stat | Specialization                       |
+| ------- | ------------ | ------------------------------------ |
+| Warrior | Strength     | Melee damage, AoE, buffs             |
+| Archer  | Agility      | Ranged damage, multi-target, evasion |
+| Mage    | Intellect    | Spell damage, AoE, healing           |
 
 ## Combat
 
@@ -54,17 +56,17 @@ See [CONTROLS.md](CONTROLS.md) for full reference.
 
 ### Attack Cooldowns
 
-| Entity | Cooldown |
-| ------ | -------- |
-| Player | 500ms |
-| Slime | 1000ms |
-| Rat | 800ms |
-| Skeleton | 1200ms |
+| Entity   | Cooldown |
+| -------- | -------- |
+| Player   | 500ms    |
+| Slime    | 1000ms   |
+| Rat      | 800ms    |
+| Skeleton | 1200ms   |
 
 ### Damage Calculation
 
 ```typescript
-baseDamage = 8 + (primaryStat * 2)
+baseDamage = 8 + primaryStat * 2
 finalDamage = baseDamage * skillDamageMultiplier
 ```
 
@@ -78,11 +80,11 @@ finalDamage = baseDamage * skillDamageMultiplier
 
 ### Experience
 
-| Monster | XP |
-| ------- | -- |
-| Slime | 15 |
-| Rat | 12 |
-| Skeleton | 30 |
+| Monster  | XP  |
+| -------- | --- |
+| Slime    | 15  |
+| Rat      | 12  |
+| Skeleton | 30  |
 
 ### Level Up
 
@@ -91,6 +93,11 @@ finalDamage = baseDamage * skillDamageMultiplier
 - Skill unlocks at levels 2, 4, 6
 
 ### Skills
+
+**All Classes:**
+| Key | Skill | Type | Cooldown | Unlock |
+| --- | ----- | ---- | -------- | ------ |
+| 5 | Health Potion | Self | 10s | Level 1 |
 
 **Warrior:**
 | Level | Skill | Type | Cooldown |
@@ -118,12 +125,12 @@ finalDamage = baseDamage * skillDamageMultiplier
 
 ### Attributes
 
-| Attribute | Effect per Point |
-| --------- | ---------------- |
-| Strength | +2 melee damage (Warrior) |
-| Agility | +2 ranged damage (Archer) |
-| Intellect | +2 spell damage (Mage) |
-| Stamina | +10 max HP, +1 HP regen/30s |
+| Attribute | Effect per Point            |
+| --------- | --------------------------- |
+| Strength  | +2 melee damage (Warrior)   |
+| Agility   | +2 ranged damage (Archer)   |
+| Intellect | +2 spell damage (Mage)      |
+| Stamina   | +10 max HP, +1 HP regen/30s |
 
 ## World Layout
 
@@ -148,7 +155,7 @@ finalDamage = baseDamage * skillDamageMultiplier
 
 ### Tower Dungeons
 
-- **Rooms**: 5 + floor * 2 per floor
+- **Rooms**: 5 + floor \* 2 per floor
 - **Layout**: Sequential rooms connected by corridors
 - **Monsters**: 1-2 per room, scaled by floor
 - **Lighting**: Torches in corners and corridors
@@ -160,11 +167,11 @@ Per floor multiplier: `1 + (floor - 1) * 0.3`
 
 | Floor | HP Mult | Damage Mult |
 | ----- | ------- | ----------- |
-| 1 | 1.0x | 1.0x |
-| 2 | 1.3x | 1.3x |
-| 3 | 1.6x | 1.6x |
-| 5 | 2.2x | 2.2x |
-| 10 | 3.7x | 3.7x |
+| 1     | 1.0x    | 1.0x        |
+| 2     | 1.3x    | 1.3x        |
+| 3     | 1.6x    | 1.6x        |
+| 5     | 2.2x    | 2.2x        |
+| 10    | 3.7x    | 3.7x        |
 
 ### Monster Leash
 
@@ -188,12 +195,15 @@ interface CharacterSave {
     playTimeMs: number
     attributes: { strength: number; agility: number; intellect: number; stamina: number }
     unspentPoints: number
+    equipment: Record<string, Equipment> // slot -> item
+    inventory: Equipment[] // bag items (max 20)
+    potions: number // health potion count
   }
   position: { floor: number; x: number; z: number }
 }
 ```
 
-Save migration handles older versions without attributes.
+Save migration handles older versions (v1, v2) adding defaults for missing fields.
 
 ## Multiplayer
 
@@ -208,14 +218,14 @@ See [signaling/README.md](../signaling/README.md) for setup.
 
 ### Short Term
 
-- [ ] Equipment system (weapons, armor)
-- [ ] Consumables (health potions)
+- [x] Equipment system (weapons, armor)
+- [x] Consumables (health potions)
+- [x] Loot drops from monsters
 - [ ] More monster types
 - [ ] Boss fights every 5 floors
 
 ### Medium Term
 
-- [ ] Loot drops
 - [ ] Town NPCs (merchant, blacksmith)
 - [ ] Quest system
 - [ ] Dungeon themes (cave, ruins, fortress)
@@ -262,6 +272,7 @@ See [signaling/README.md](../signaling/README.md) for setup.
 ### Adding New Floors
 
 Floors are auto-generated. To add variety:
+
 1. Add room size variations in `generateDungeon()`
 2. Add new monster types to spawn pool
 3. Adjust scaling in `FloorScene.tsx`

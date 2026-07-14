@@ -1,6 +1,7 @@
 import { useEffect, useMemo } from 'react'
 
 import DamageNumbers from '../effects/DamageNumbers'
+import DroppedItems from '../effects/DroppedItems'
 import { gameLoop } from '../engine/GameLoop'
 import { Player, Monster } from '../entities'
 import { useCharacterStore, useUIStore, useWorldStore } from '../store'
@@ -129,6 +130,10 @@ export default function TownScene() {
             xpToNextLevel: stats.xpToNextLevel ?? 150,
             attributes: attrs,
             unspentPoints: stats.unspentPoints ?? 0,
+            equipment: stats.equipment ?? {},
+            inventory: stats.inventory ?? [],
+            potions: stats.potions ?? 3,
+            lastPotionTime: 0,
           },
         },
       })
@@ -207,6 +212,7 @@ export default function TownScene() {
       {monsters.map((monster) => (
         <Monster key={monster.id} id={monster.id} />
       ))}
+      <DroppedItems />
       <DamageNumbers />
     </>
   )

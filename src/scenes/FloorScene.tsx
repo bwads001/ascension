@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 
 import DamageNumbers from '../effects/DamageNumbers'
+import DroppedItems from '../effects/DroppedItems'
 import { gameLoop } from '../engine/GameLoop'
 import { Player, Monster } from '../entities'
 import { useCharacterStore, useWorldStore } from '../store'
@@ -186,6 +187,10 @@ export default function FloorScene() {
             xpToNextLevel: stats.xpToNextLevel ?? 150,
             attributes: attrs,
             unspentPoints: stats.unspentPoints ?? 0,
+            equipment: stats.equipment ?? {},
+            inventory: stats.inventory ?? [],
+            potions: stats.potions ?? 3,
+            lastPotionTime: 0,
           },
         },
       })
@@ -276,6 +281,7 @@ export default function FloorScene() {
       {monsters.map((monster) => (
         <Monster key={monster.id} id={monster.id} />
       ))}
+      <DroppedItems />
       <DamageNumbers />
     </>
   )

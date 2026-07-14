@@ -5,13 +5,21 @@ import { useEffect, useState } from 'react'
 import { gameLoop } from './engine'
 import { StartScene, TownScene, FloorScene } from './scenes'
 import { useCharacterStore, useUIStore, useWorldStore } from './store'
-import { PlayerHUD, DeathScreen, CharacterScreen, SkillBar, SkillUnlockNotification } from './ui'
+import {
+  PlayerHUD,
+  DeathScreen,
+  CharacterScreen,
+  SkillBar,
+  SkillUnlockNotification,
+  InventoryScreen,
+} from './ui'
 
 export default function App() {
   const { loaded, load } = useCharacterStore()
   const showStartScreen = useUIStore((s) => s.showStartScreen)
   const floor = useWorldStore((s) => s.floor)
   const [showCharacterScreen, setShowCharacterScreen] = useState(false)
+  const [showInventoryScreen, setShowInventoryScreen] = useState(false)
 
   useEffect(() => {
     load()
@@ -24,8 +32,11 @@ export default function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'c' && !showStartScreen) {
+      if (showStartScreen) return
+      if (e.key.toLowerCase() === 'c') {
         setShowCharacterScreen((prev) => !prev)
+      } else if (e.key.toLowerCase() === 'i') {
+        setShowInventoryScreen((prev) => !prev)
       }
     }
 
@@ -63,8 +74,11 @@ export default function App() {
       <SkillUnlockNotification />
       <DeathScreen />
       {showCharacterScreen && <CharacterScreen onClose={() => setShowCharacterScreen(false)} />}
+      {showInventoryScreen && <InventoryScreen onClose={() => setShowInventoryScreen(false)} />}
       <div style={styles.hud}>
-        <p>ESC: {floor > 0 ? 'Return to Town' : 'Menu'} | C: Character | 1-0: Skills</p>
+        <p>
+          ESC: {floor > 0 ? 'Return to Town' : 'Menu'} | C: Character | I: Inventory | 1-0: Skills
+        </p>
       </div>
     </div>
   )

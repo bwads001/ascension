@@ -1,5 +1,7 @@
 import { useCombatStore, useDamageNumberStore, useWorldStore } from '../store'
+import { useDroppedItemsStore } from '../store/droppedItemsStore'
 import type { System, GameEvent, Entity } from '../types'
+import { generateLootDrop } from '../types/items'
 import { inRange } from '../utils/math'
 
 function createDamageDealtEvent(sourceId: string, targetId: string, amount: number): GameEvent {
@@ -181,6 +183,17 @@ export class CombatSystem implements System {
     store.updateEntity(killedBy, {
       player: { ...killer.components.player, kills: currentKills + 1 },
     })
+
+    const deadEntity = store.entities[entityId]
+    if (deadEntity?.components.position && deadEntity.components.monster) {
+      const pos = deadEntity.components.position
+      const monsterLevel = Math.floor(store.floor * 0.5) + 1
+      const loot = generateLootDrop(monsterLevel)
+      if (loot) {
+        const droppedStore = useDroppedItemsStore.getState()
+        droppedStore.addItem(loot, pos.x, 0.3, pos.z)
+      }
+    }
 
     this.damageSourceMap.delete(entityId)
   }
